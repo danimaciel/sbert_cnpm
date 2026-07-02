@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>De → Para SBERT · Desafios de Inovação · Embrapa Territorial</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink: #1a1a2e;
+  --slate: #2e4057;
+  --azure: #1b6ca8;
+  --frost: #e8f1f8;
+  --mist: #f7f9fc;
+  --mid: #8c9eb4;
+  --line: #d4dde8;
+  --white: #ffffff;
+  --green: #2d6a4f;
+  --amber: #b5451b;
+  --surface: #ffffff;
+  --surface-1: #f7f9fc;
+  --text: #1a1a2e;
+  --text-muted: #6b7a8d;
+  --border: rgba(26,26,46,0.1);
+  --radius: 8px;
+  --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
+  --mono: 'Courier New', monospace;
+}
+
+body {
+  font-family: var(--font);
+  background: var(--mist);
+  color: var(--text);
+  min-height: 100vh;
+}
+
+.page-header {
+  background: var(--ink);
+  padding: 1.5rem 2rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.page-header .brand {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--mid);
+  text-transform: uppercase;
+}
+.page-header h1 {
+  font-size: 18px;
+  font-weight: 500;
+  color: #fff;
+  flex: 1;
+}
+.page-header .subtitle {
+  font-size: 12px;
+  color: var(--mid);
+}
+
+.container {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 1.5rem 1.5rem 3rem;
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 1.25rem;
+  overflow-x: auto;
+}
+.tab-btn {
+  font-family: var(--font);
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 9px 16px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  white-space: nowrap;
+  transition: all .15s;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--azure); border-bottom-color: var(--azure); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* Filter bar */
+.filter-bar {
+  background: var(--white);
+  border: 0.5px solid var(--line);
+  border-radius: 12px;
+  padding: 0.9rem 1.1rem;
+  margin-bottom: 1.25rem;
+}
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+.filter-row:last-child { margin-bottom: 0; }
+.filter-row .flabel {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  min-width: 92px;
+}
+.search-input {
+  flex: 1;
+  min-width: 220px;
+  font-family: var(--font);
+  font-size: 12.5px;
+  padding: 7px 12px;
+  border: 0.5px solid var(--line);
+  border-radius: 99px;
+  background: var(--mist);
+  color: var(--text);
+  outline: none;
+}
+.search-input:focus { border-color: var(--azure); background: var(--white); }
+.chip-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip {
+  font-size: 11px;
+  padding: 4px 11px;
+  border-radius: 99px;
+  border: 0.5px solid var(--line);
+  cursor: pointer;
+  background: var(--white);
+  color: var(--text-muted);
+  transition: all .15s;
+  user-select: none;
+  font-family: var(--font);
+  white-space: nowrap;
+}
+.chip.active {
+  background: var(--azure);
+  color: #fff;
+  border-color: var(--azure);
+}
+.chip:hover:not(.active) {
+  background: var(--frost);
+  border-color: var(--mid);
+}
+.clear-btn {
+  font-size: 11px;
+  color: var(--amber);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font);
+  text-decoration: underline;
+  padding: 4px 4px;
+}
+.result-count {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+
+.stat-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+.stat {
+  background: var(--white);
+  border: 0.5px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  flex: 1;
+  min-width: 90px;
+}
+.stat .n {
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.1;
+}
+.stat .l {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: 3px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.section-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 1.75rem 0 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.section-title .hint {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+.card {
+  background: var(--white);
+  border: 0.5px solid var(--line);
+  border-radius: 12px;
+  padding: 1.25rem;
+}
+
+.flow-hint {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+  line-height: 1.5;
+}
+
+.sankey-wrap {
+  background: var(--white);
+  border: 0.5px solid var(--line);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin-bottom: 1rem;
+  overflow-x: auto;
+}
+.sankey-svg { display: block; width: 100%; }
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 0.75rem 0 1.25rem;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.detail-panel {
+  background: var(--white);
+  border: 0.5px solid var(--line);
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  min-height: 120px;
+}
+.detail-panel h4 {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.solutions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 8px;
+}
+.sol-card {
+  background: var(--surface-1);
+  border: 0.5px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  cursor: pointer;
+  transition: border-color .15s;
+}
+.sol-card:hover { border-color: var(--azure); }
+.sol-card .sol-id {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--azure);
+  margin-bottom: 4px;
+  font-family: var(--mono);
+}
+.sol-card .sol-text {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.55;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.sol-card .sol-meta {
+  display: flex;
+  gap: 5px;
+  margin-top: 7px;
+  flex-wrap: wrap;
+}
+.badge {
+  font-size: 10px;
+  padding: 2px 7px;
+  border-radius: 99px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.badge-warn { background: #fff3e0; color: #b5451b; }
+.badge-ok   { background: #e8f5e9; color: #2d6a4f; }
+.badge-info { background: #e3f2fd; color: #1b6ca8; }
+.badge-err  { background: #fce4d6; color: #b5451b; }
+.badge-mut  { background: #ede7f6; color: #4a3aa7; }
+
+.empty-state {
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 2.5rem 0;
+  text-align: center;
+  line-height: 2;
+}
+.empty-state svg { display: block; margin: 0 auto 8px; opacity: 0.35; }
+
+.tooltip {
+  position: fixed;
+  background: var(--white);
+  border: 0.5px solid var(--line);
+  border-radius: var(--radius);
+  padding: 9px 12px;
+  font-size: 11px;
+  font-family: var(--font);
+  pointer-events: none;
+  z-index: 9999;
+  max-width: 260px;
+  line-height: 1.55;
+  box-shadow: 0 4px 16px rgba(26,26,46,.12);
+  display: none;
+}
+.tooltip strong {
+  display: block;
+  margin-bottom: 3px;
+  font-size: 12px;
+  color: var(--text);
+}
+
+/* DI cards */
+.di-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 10px;
+  margin-bottom: 1.25rem;
+}
+.di-card {
+  background: var(--white);
+  border: 0.5px solid var(--line);
+  border-left: 3px solid var(--mid);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+}
+.di-card .di-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.di-card .di-code {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+.di-card .di-count {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  margin-left: auto;
+}
+.di-card .di-port {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  margin-bottom: 5px;
+}
+.di-card .di-desafio {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.5;
+  margin-bottom: 9px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.di-targets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+.di-target-chip {
+  font-size: 10px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 0.5px solid var(--line);
+  background: var(--surface-1);
+  cursor: pointer;
+  font-family: var(--mono);
+  color: var(--text);
+  transition: all .12s;
+}
+.di-target-chip:hover { border-color: var(--azure); background: var(--frost); }
+.di-target-chip.sel { background: var(--azure); color: #fff; border-color: var(--azure); }
+
+/* Table */
+.table-wrap {
+  background: var(--white);
+  border: 0.5px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+}
+table.sol-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+}
+table.sol-table th {
+  text-align: left;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-muted);
+  background: var(--surface-1);
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--line);
+  cursor: pointer;
+  white-space: nowrap;
+  user-select: none;
+}
+table.sol-table th:hover { color: var(--azure); }
+table.sol-table th .arrow { font-size: 9px; opacity: 0.6; }
+table.sol-table td {
+  padding: 9px 10px;
+  border-bottom: 0.5px solid var(--line);
+  vertical-align: top;
+}
+table.sol-table tr.row:hover { background: var(--mist); cursor: pointer; }
+table.sol-table .id-cell { font-family: var(--mono); font-weight: 600; color: var(--azure); }
+table.sol-table .txt-cell {
+  max-width: 320px;
+  color: var(--text);
+  line-height: 1.45;
+}
+table.sol-table .port-flow, table.sol-table .di-flow {
+  font-size: 11px;
+  line-height: 1.6;
+}
+table.sol-table .arrow-sep { color: var(--mid); margin: 0 3px; }
+tr.expand-row td {
+  background: var(--surface-1);
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.expand-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+.expand-col h5 {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.expand-col p {
+  font-size: 11.5px;
+  line-height: 1.6;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.expand-col .meta-line {
+  font-size: 10.5px;
+  color: var(--text-muted);
+  margin-bottom: 3px;
+}
+.expand-col .meta-line b { color: var(--text); font-weight: 600; }
+.expand-footer {
+  grid-column: 1 / -1;
+  border-top: 0.5px dashed var(--line);
+  padding-top: 10px;
+  margin-top: 4px;
+  font-size: 10.5px;
+  color: var(--text-muted);
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+/* Indicators */
+.ind-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+  margin-bottom: 1.25rem;
+}
+@media (max-width: 760px) { .ind-grid, .expand-grid { grid-template-columns: 1fr; } }
+.bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 9px; }
+.bar-row .blabel {
+  font-size: 11px;
+  color: var(--text-muted);
+  width: 168px;
+  flex-shrink: 0;
+  line-height: 1.3;
+}
+.bar-track {
+  flex: 1;
+  background: var(--surface-1);
+  border-radius: 4px;
+  height: 14px;
+  overflow: hidden;
+  position: relative;
+}
+.bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width .3s;
+}
+.bar-row .bval {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text);
+  width: 34px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.matrix-wrap { overflow-x: auto; }
+table.matrix { border-collapse: collapse; font-size: 10.5px; min-width: 640px; }
+table.matrix th, table.matrix td { padding: 6px 8px; text-align: center; border: 0.5px solid var(--line); }
+table.matrix th.rowhead { text-align: right; font-weight: 600; max-width: 130px; white-space: normal; line-height: 1.25; }
+table.matrix th.colhead { writing-mode: vertical-rl; transform: rotate(180deg); font-weight: 600; max-width: 26px; }
+table.matrix td.cell { font-weight: 600; color: var(--text); }
+table.matrix td.diag { outline: 1.5px solid var(--mid); }
+
+.page-footer {
+  text-align: center;
+  padding: 1.5rem;
+  font-size: 11px;
+  color: var(--text-muted);
+  border-top: 0.5px solid var(--line);
+  margin-top: 2rem;
+}
+</style>
+</head>
+<body>
+
+<header class="page-header">
+  <div>
+    <div class="brand">Embrapa Territorial · Farol da Inovação e Impacto</div>
+    <h1>Análise De → Para SBERT · Desafios de Inovação</h1>
+  </div>
+  <div class="subtitle">SBERT · similaridade semântica de cosseno · 44 soluções · base corporativa completa de DIs</div>
+</header>
+
+<div class="container">
+
+  <div class="tabs" id="tabs">
+    <button class="tab-btn active" data-tab="overview">Visão Geral</button>
+    <button class="tab-btn" data-tab="portfolio">Fluxo entre Portfólios</button>
+    <button class="tab-btn" data-tab="di">Desafios de Inovação (DI)</button>
+    <button class="tab-btn" data-tab="table">Lista de Soluções</button>
+    <button class="tab-btn" data-tab="indicators">Indicadores</button>
+  </div>
+
+  <div class="filter-bar" id="filterBarWrap">
+    <div class="filter-row">
+      <span class="flabel">Buscar</span>
+      <input class="search-input" id="searchInput" type="text" placeholder="ID, texto da solução, desafio, código DI...">
+      <span class="result-count" id="resultCount"></span>
+    </div>
+    <div class="filter-row">
+      <span class="flabel">Portfólio</span>
+      <div class="chip-row" id="portChips"></div>
+    </div>
+    <div class="filter-row">
+      <span class="flabel">Tipo de movimento</span>
+      <div class="chip-row" id="tipoChips"></div>
+      <button class="clear-btn" id="clearBtn">Limpar filtros</button>
+    </div>
+  </div>
+
+  <!-- OVERVIEW -->
+  <div class="tab-panel active" id="panel-overview">
+    <div class="stat-row" id="ovStats"></div>
+    <div class="ind-grid">
+      <div class="card">
+        <div class="section-title">Tipo de movimento</div>
+        <div id="ovTipo"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">Blocos de foco mais relacionados</div>
+        <div id="ovBlocos"></div>
+      </div>
+    </div>
+    <div class="section-title">Como ler esta análise <span class="hint">— metodologia SBERT</span></div>
+    <div class="card">
+      <p style="font-size:12px;line-height:1.7;color:var(--text-muted)">
+        Esta versão substitui a comparação lexical TF-IDF por <strong>embeddings semânticos SBERT</strong>: cada solução e cada
+        Desafio de Inovação (DI) da <strong>base corporativa completa</strong> são convertidos em vetores que capturam significado —
+        não apenas palavras em comum — e comparados por similaridade de cosseno. A coluna <strong>PARA</strong> traz o DI de maior
+        similaridade semântica (Top 1). Por medir conceito em vez de vocabulário, os percentuais aqui são bem mais altos e mais
+        diretamente interpretáveis que na versão TF-IDF (faixa típica 38%–85%, média ~64%, contra 6%–34% da versão lexical).
+        O campo <strong>Tipo de movimento</strong> resume a comparação entre o DI atualmente vinculado à solução e o DI sugerido:
+        <em>Mantém DI</em> (sugestão coincide com o atual), <em>Muda DI no mesmo portfólio</em>, <em>Muda DI e portfólio</em>, ou
+        <em>Sem DI atual corporativo</em> (a solução não tinha nenhum DI vinculado na base corporativa antes desta análise).
+      </p>
+    </div>
+  </div>
+
+  <!-- PORTFOLIO SANKEY -->
+  <div class="tab-panel" id="panel-portfolio">
+    <p class="flow-hint">
+      Cada faixa representa soluções migrando de um portfólio (esquerda · situação atual) para outro (direita · sugerido pela
+      similaridade semântica SBERT). Largura proporcional ao volume. <strong>Clique em uma faixa</strong> para ver as soluções
+      daquele fluxo. O nó cinza "Sem DI corporativo" reúne soluções que não tinham nenhum DI vinculado na base corporativa.
+    </p>
+    <div class="sankey-wrap">
+      <svg class="sankey-svg" id="sankey"></svg>
+    </div>
+    <div class="legend" id="legend"></div>
+    <div class="detail-panel" id="portDetail"></div>
+  </div>
+
+  <!-- DI VIEW -->
+  <div class="tab-panel" id="panel-di">
+    <p class="flow-hint">
+      Cada cartão é um Desafio de Inovação (DI) <strong>atual</strong>, com o portfólio ao qual pertence hoje. Os chips abaixo do texto
+      mostram para quais DI as soluções vinculadas foram <strong>sugeridas</strong> pelo SBERT (com a contagem de soluções e a
+      similaridade média). Clique em um chip para ver as soluções daquele par DI atual → DI sugerido.
+    </p>
+    <div class="di-grid" id="diGrid"></div>
+    <div class="detail-panel" id="diDetail"></div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="tab-panel" id="panel-table">
+    <p class="flow-hint">Clique em uma linha para ver todos os campos da solução (desafios completos, OE, meta, ODS, compromisso vinculado e blocos de foco relacionados). Clique nos cabeçalhos para ordenar.</p>
+    <div class="table-wrap">
+      <table class="sol-table" id="solTable">
+        <thead></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- INDICATORS -->
+  <div class="tab-panel" id="panel-indicators">
+    <div class="ind-grid">
+      <div class="card">
+        <div class="section-title">Tipo de movimento</div>
+        <div id="indTipo"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">Similaridade média por tipo de movimento</div>
+        <div id="indSimClass"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">Blocos de foco mais relacionados</div>
+        <div id="indBlocos"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">Distribuição de similaridade (faixas)</div>
+        <div id="indSimHist"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">ODS · desafio atual (DE)</div>
+        <div id="indOdsDe"></div>
+      </div>
+      <div class="card">
+        <div class="section-title">ODS · desafio sugerido (PARA)</div>
+        <div id="indOdsPara"></div>
+      </div>
+    </div>
+    <div class="section-title">Matriz de transição entre portfólios <span class="hint">linhas = DE (atual) · colunas = PARA (sugerido)</span></div>
+    <div class="card matrix-wrap">
+      <table class="matrix" id="matrixTable"></table>
+    </div>
+  </div>
+
+</div>
+
+<footer class="page-footer">
+  Embrapa Territorial · Análise semântica SBERT/cosseno · Módulo Propostas + TerImpact · Farol da Inovação e Impacto
+</footer>
+
+<div class="tooltip" id="tip"></div>
+
+<script>
+const DATA = [{"id":"SOL022","texto":"Sistema digital em apoio à gestão da produção orgânica e agroecológica","comp_ids":"COMP019","comp_texto":"[Compartilhado - Parceira] Até 2025, implementar processos, ferramentas, técnicas, metodologias que apoiem a Embrapa e seus parceiros em iniciativas de inclusão social e digital de populações em situação de vulnerabilidade socioeconômica ou produtiva.","de_di":"D046","de_port":"Agroecologia e Inclusão Socioprodutiva","de_oe":"06. Inclusão Socioprodutiva e Digital","de_meta":"Sem vínculo a Meta Estratégica (OE 06)","de_ods":"12. Assegurar padrões de produção e de consumo sustentáveis","para_di":"D074","para_desafio":"Promover soluções ciber físicas e digitais para apoiar a gestão das unidades agroprodutivas e agregar valor aos produtos","para_port":"Transformação Digital no Agro","para_oe":"07. Tecnologias Emergentes e Disruptivas","para_meta":"07.1. Até 2027, ampliar a adoção de 60 soluções tecnológicas em automação e agricultura digital, pelo setor produtivo, para as cadeias agropecuárias desenvolvidas pela Embrapa e parceiros. (meta de adoção)","para_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","sim":0.8498,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Muda DI e portfólio","blocos":"C01 - Declaração do foco de atuação | C07 - Alinhamento ao OE 6 | C09 - Justificativas técnicas e estratégicas | C10 - Considerações finais e continuidade","de_desafio":"Fortalecer redes sociotécnicas com laboratórios ou nichos de inovação social e tecnológica para gestão organizacional, diversificação produtiva e acesso a mercados locais, associados à pluriatividade e à multifuncionalidade dos espaços rural, urbano, periurbano e das regiões costeiras"},{"id":"SOL023","texto":"Prospecção de experiências e demandas para apoiar a agricultura de base agroecológica no Leste Paulista.","comp_ids":"COMP020","comp_texto":"(Compartilhado) Promover a adoção, pela cadeia produtiva de produtos de origem vegetal ou animal, de processos agropecuários para aumentar eficiência no uso de insumos e de recursos naturais, diminuir impacto socioambiental e garantir segurança do alimento, até 2025. (1.12)","de_di":"D046","de_port":"Agroecologia e Inclusão Socioprodutiva","de_oe":"06. Inclusão Socioprodutiva e Digital","de_meta":"Sem vínculo a Meta Estratégica (OE 06)","de_ods":"12. Assegurar padrões de produção e de consumo sustentáveis","para_di":"D076","para_desafio":"Promover soluções estratégicas em temas emergentes, promissores e portadores de futuro, a fim de viabilizar transformações no agro","para_port":"Transformação Digital no Agro","para_oe":"07. Tecnologias Emergentes e Disruptivas","para_meta":"07.1. Até 2027, ampliar a adoção de 60 soluções tecnológicas em automação e agricultura digital, pelo setor produtivo, para as cadeias agropecuárias desenvolvidas pela Embrapa e parceiros. (meta de adoção)","para_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","sim":0.6533,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Muda DI e portfólio","blocos":"C02 - Alinhamento ao OE 1 | C04 - Alinhamento ao OE 3 | C06 - Alinhamento ao OE 5","de_desafio":"Fortalecer redes sociotécnicas com laboratórios ou nichos de inovação social e tecnológica para gestão organizacional, diversificação produtiva e acesso a mercados locais, associados à pluriatividade e à multifuncionalidade dos espaços rural, urbano, periurbano e das regiões costeiras"},{"id":"SOL015","texto":"Ferramentas para apoiar o monitoramento, a identificação e o controle das pragas quarentenárias ausentes Anastrepha suspensa, Prodiplosis longifila e Homalodisca vitripennis","comp_ids":"","comp_texto":"","de_di":"D065","de_port":"Bioeficiência na Agropecuária","de_oe":"02. Recursos Naturais e Mudança do Clima","de_meta":"02.4. Até 2027, aumentar em 30% o número de soluções tecnológicas disponibilizadas para o enfrentamento da pressão sobre os biomas, da mudança do clima, e para o uso sustentável dos recursos genéticos e naturais e das fontes renováveis de energia. (meta de produto) [META ENCERRADA: PN 2026]","de_ods":"13. Tomar medidas urgentes para combater a mudança climática e seus impactos","para_di":"D029","para_desafio":"Desenvolver kits de diagnóstico rápido e vacinas de nova geração para o manejo de pragas e doenças das principais espécies e culturas de importância para a agropecuária nacional","para_port":"Biorrevolução","para_oe":"07. Tecnologias Emergentes e Disruptivas","para_meta":"07.2. Até 2030, ampliar em pelo menos 5 tecnologias desenvolvidas relacionadas à biotecnologia, biossegurança e nanotecnologia (meta de produto).","para_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","sim":0.6097,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Muda DI e portfólio","blocos":"","de_desafio":"Oferecer estratégias e tecnologias seguras e sustentáveis para mitigar impactos decorrentes de efeitos bióticos e abióticos de relevância para sistemas de produção agropecuários e florestais"},{"id":"SOL012","texto":"Ferramentas avançadas de informação para monitoramento e definição de estratégias de manejo da resistência de plantas daninhas a herbicidas em sistemas agrícolas no Brasil","comp_ids":"COMP009","comp_texto":"[Compartilhado - Parceira] Disponibilizar e promover a adoção de pelo menos duas práticas de manejo sustentável de plantas daninhas resistentes a glifosato em sistemas de produção de algodão na região do cerrado e MATOPIBA proporcionando benefício econômico de 6 milhões até 2025.","de_di":"D065","de_port":"Bioeficiência na Agropecuária","de_oe":"02. Recursos Naturais e Mudança do Clima","de_meta":"02.4. Até 2027, aumentar em 30% o número de soluções tecnológicas disponibilizadas para o enfrentamento da pressão sobre os biomas, da mudança do clima, e para o uso sustentável dos recursos genéticos e naturais e das fontes renováveis de energia. (meta de produto) [META ENCERRADA: PN 2026]","de_ods":"13. Tomar medidas urgentes para combater a mudança climática e seus impactos","para_di":"D031","para_desafio":"Desenvolver métodos e ferramentas para monitorar a relação de causa e efeito da conversão de ecossistemas naturais e mudança do uso da terra com a produção agropecuária, a perda de biodiversidade e contabilização de emissões de GEE nos Biomas brasileiros","para_port":"Clima, recursos naturais e transformação ecológica","para_oe":"02. Recursos Naturais e Mudança do Clima","para_meta":"02.1. Até 2030, ampliar em 5,5 milhões de hectares com tecnologias da Embrapa para integração lavoura-pecuária-floresta, recuperação de áreas degradadas e restauração de ecossistemas (meta de adoção).","para_ods":"13. Tomar medidas urgentes para combater a mudança climática e seus impactos","sim":0.6928,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Muda DI e portfólio","blocos":"C05 - Alinhamento ao OE 4","de_desafio":"Oferecer estratégias e tecnologias seguras e sustentáveis para mitigar impactos decorrentes de efeitos bióticos e abióticos de relevância para sistemas de produção agropecuários e florestais"},{"id":"SOL013","texto":"Protocolos para certificação socioambiental e pagamento por serviços ambientais em propriedades rurais nas áreas de ocorrência do babaçu.","comp_ids":"COMP010","comp_texto":"[Compartilhado] Desenvolver, até 2027, ao menos uma solução de inovação que envolva métricas, indicadores e protocolos para agregação de valor a produtos agropecuários que deem suporte à certificação de propriedades rurais prestadoras de serviços ambientais.","de_di":"D028","de_port":"Clima, recursos naturais e transformação ecológica","de_oe":"02. Recursos Naturais e Mudança do Clima","de_meta":"02.4. Até 2027, aumentar em 30% o número de soluções tecnológicas disponibilizadas para o enfrentamento da pressão sobre os biomas, da mudança do clima, e para o uso sustentável dos recursos genéticos e naturais e das fontes renováveis de energia. (meta de produto) [META ENCERRADA: PN 2026]","de_ods":"12. Assegurar padrões de produção e de consumo sustentáveis","para_di":"D045","para_desafio":"Fortalecer a restauração produtiva de passivos ambientais em Áreas de Reserva Legal e de Preservação Permanente no âmbito da agricultura familiar, agricultura urbana e periurbana, comunidades indígenas e tradicionais","para_port":"Agroecologia e Inclusão Socioprodutiva","para_oe":"06. Inclusão Socioprodutiva e Digital","para_meta":"Sem vínculo a Meta Estratégica (OE 06)","para_ods":"","sim":0.7015,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Muda DI e portfólio","blocos":"C04 - Alinhamento ao OE 3","de_desafio":"Desenvolver indicadores e protocolos para contribuir com a certificação de produtos e/ou processos para manter e/ou ampliar os serviços ecossistêmicos"},{"id":"SOL010","texto":"Mapeamento dos estoques e valoração de carbono no solo e na biomassa vegetal dos cafeeiros na região das Matas de Rondônia","comp_ids":"COMP007","comp_texto":"[Compartilhado - Parceira] Desenvolver e propor mecanismos de valoração e compensação de serviços ambientais para a agregação de valor no ambiente rural até 2030.","de_di":"D001","de_port":"Clima, recursos naturais e transformação ecológica","de_oe":"02. Recursos Naturais e Mudança do Clima","de_meta":"02.3. Até 2025, disponibilizar 5 sistemas de manejo desenvolvidos pela Embrapa e parceiros para o manejo sustentável de florestas naturais adaptados às diferentes regiões brasileiras. (meta de produto) [META ENCERRADA: PN 2026]","de_ods":"15. Proteger, recuperar e promover o uso sustentável dos ecossistemas terrestres, gerir de forma sustentável as florestas, combater a desertificação, deter e reverter a degradação da terra e deter a perda de biodiversidade","para_di":"D057","para_desafio":"Intensificação sustentável dos Sistemas Integração Lavoura-Pecuária e Lavoura-Pecuária-Floresta nos biomas brasileiros","para_port":"Sistemas de Produção Sustentáveis e Resilientes","para_oe":"02. Recursos Naturais e Mudança do Clima","para_meta":"02.1. Até 2030, ampliar em 5,5 milhões de hectares com tecnologias da Embrapa para integração lavoura-pecuária-floresta, recuperação de áreas degradadas e restauração de ecossistemas (meta de adoção).","para_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","sim":0.6902,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Muda DI e portfólio","blocos":"C03 - Alinhamento ao OE 2 | C04 - Alinhamento ao OE 3 | C06 - Alinhamento ao OE 5","de_desafio":"Agregar valor aos produtos e serviços dos sistemas produtivos sustentáveis, sistemas agrícolas tradicionais, ecossistemas naturais e regiões ecotonais que promovam a capacidade adaptativa, o controle de emissões de GEE e/ou amplie os serviços ecossistêmicos"},{"id":"SOL020","texto":"Processo para utilização de microrganismos solubilizadores de fosfato na cultura do feijoeiro-comum no estado de São Paulo","comp_ids":"","comp_texto":"","de_di":"D055","de_port":"Economia Verde","de_oe":"05. Bioeconomia e Economia Circular","de_meta":"05.1. Até 2030, disponibilizar para o setor produtivo 10 soluções tecnológicas relacionadas à bioinsumos (meta de produto).","de_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","para_di":"D010","para_desafio":"Ampliar as opções de espécies nativas (vegetais, animais e microrganismos) para uso em sistemas de produção em integração sustentável nos biomas brasileiros","para_port":"Economia da Biodiversidade","para_oe":"01. Produção Sustentável e Competitividade","para_meta":"01.2. Até 2030, aumentar em 10% a adoção de cultivares de espécies anuais e perenes, de interesse econômico, adaptados às diferentes regiões brasileiras. (meta de adoção) [META ENCERRADA: PN 2026]","para_ods":"15. Proteger, recuperar e promover o uso sustentável dos ecossistemas terrestres, gerir de forma sustentável as florestas, combater a desertificação, deter e reverter a degradação da terra e deter a perda de biodiversidade","sim":0.659,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Muda DI e portfólio","blocos":"","de_desafio":"Incrementar o desenvolvimento de bioinsumos para uso na fertilidade do solo, na nutrição e crescimento das plantas ou na tolerância a estresses abióticos, em sistemas de produção agropecuária"},{"id":"SOL021","texto":"Tecnologias para a exploração sustentável da cadeia da macaúba no contexto do Nordeste Brasileiro","comp_ids":"COMP018","comp_texto":"[Compartilhado] Disponibilizar biomassas para aplicação em processos agroindustriais até 2026.","de_di":"D005","de_port":"Economia Verde","de_oe":"05. Bioeconomia e Economia Circular","de_meta":"05.2. Até 2030, disponibilizar 5 novas matérias-primas renováveis para uso no contexto da bioeconomia. (meta de produto) [META ENCERRADA: PN 2026]","de_ods":"7. Garantir acesso à energia barata, confiável, sustentável e renovável para todos","para_di":"D010","para_desafio":"Ampliar as opções de espécies nativas (vegetais, animais e microrganismos) para uso em sistemas de produção em integração sustentável nos biomas brasileiros","para_port":"Economia da Biodiversidade","para_oe":"01. Produção Sustentável e Competitividade","para_meta":"01.2. Até 2030, aumentar em 10% a adoção de cultivares de espécies anuais e perenes, de interesse econômico, adaptados às diferentes regiões brasileiras. (meta de adoção) [META ENCERRADA: PN 2026]","para_ods":"15. Proteger, recuperar e promover o uso sustentável dos ecossistemas terrestres, gerir de forma sustentável as florestas, combater a desertificação, deter e reverter a degradação da terra e deter a perda de biodiversidade","sim":0.6827,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Muda DI e portfólio","blocos":"C06 - Alinhamento ao OE 5","de_desafio":"Ampliar a eficiência energética e produção de bioenergia a partir de biomassa cultivada e/ou proveniente de resíduos"},{"id":"SOL044","texto":"Monitoramento e Implementação de soluções de manejo de solo, planta e água usando técnicas de Agricultura de Precisão e sensores proximais de campo e remotos","comp_ids":"","comp_texto":"","de_di":"Sem DI corporativo","de_port":"Sem correspondência na base corporativa","de_oe":"Não Vinculado","de_meta":"Não Vinculado","de_ods":"Sem ODS","para_di":"D035","para_desafio":"Desenvolver soluções para manejo e gestão da água, visando a conservação de fontes superficiais e subterrâneas, em bacias hidrográficas nos agroecossistemas e ecossistemas naturais","para_port":"Clima, recursos naturais e transformação ecológica","para_oe":"02. Recursos Naturais e Mudança do Clima","para_meta":"02.4. Até 2027, aumentar em 30% o número de soluções tecnológicas disponibilizadas para o enfrentamento da pressão sobre os biomas, da mudança do clima, e para o uso sustentável dos recursos genéticos e naturais e das fontes renováveis de energia. (meta de produto) [META ENCERRADA: PN 2026]","para_ods":"6. Garantir disponibilidade e manejo sustentável da água e saneamento para todos","sim":0.6058,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Sem DI atual corporativo","blocos":"","de_desafio":""},{"id":"SOL016","texto":"Avaliação da entomofauna associada a cultivos de macadâmia em Dois Córregos/SP, prospecção e avaliação dos principais insetos-praga exóticos de importância para cultivos de macadâmia no exterior, mas ausentes nas áreas avaliadas, e seus possíveis bioagentes de controle","comp_ids":"","comp_texto":"","de_di":"Sem DI corporativo","de_port":"Sem correspondência na base corporativa","de_oe":"02. Recursos Naturais e Mudança do Clima","de_meta":"02.4. Até 2027, aumentar em 30% o número de soluções tecnológicas disponibilizadas para o enfrentamento da pressão sobre os biomas, da mudança do clima, e para o uso sustentável dos recursos genéticos e naturais e das fontes renováveis de energia. (meta de produto)","de_ods":"Sem ODS","para_di":"D053","para_desafio":"Incrementar o desenvolvimento de bioinsumos para controle e manejo de pragas agrícolas","para_port":"Economia Verde","para_oe":"05. Bioeconomia e Economia Circular","para_meta":"05.1. Até 2030, disponibilizar para o setor produtivo 10 soluções tecnológicas relacionadas à bioinsumos (meta de produto).","para_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","sim":0.5196,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Sem DI atual corporativo","blocos":"","de_desafio":""},{"id":"SOL040","texto":"Bancos de dados e metodologias técnico-científicas para preparação dos dados para treino e avaliação de modelos de inteligência artificial (IA)","comp_ids":"","comp_texto":"","de_di":"Sem DI corporativo","de_port":"Sem correspondência na base corporativa","de_oe":"Não Vinculado","de_meta":"Não Vinculado","de_ods":"Sem ODS","para_di":"D098","para_desafio":"Viabilizar plataformas digitais para a gestão de dados e informações científicas, como apoio ao setor agroprodutivo, às políticas públicas, à pesquisa e à inovação no agro","para_port":"Transformação Digital no Agro","para_oe":"01. Produção Sustentável e Competitividade","para_meta":"01.3. Até 2030, aumentar em 10% os benefícios econômicos derivados do Zoneamento de Risco Climático (Zarc) com apoio da Embrapa e parceiros. (meta de impacto)","para_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","sim":0.475,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Sem DI atual corporativo","blocos":"","de_desafio":""},{"id":"SOL042","texto":"Método de identificação e monitoramento das condições das pastagens por dados de satélite","comp_ids":"","comp_texto":"","de_di":"Sem DI corporativo","de_port":"Sem correspondência na base corporativa","de_oe":"Não Vinculado","de_meta":"Não Vinculado","de_ods":"Sem ODS","para_di":"D078","para_desafio":"Prover soluções em inteligência geográfica para apoiar o setor agroprodutivo, o desenvolvimento territorial e as políticas públicas","para_port":"Transformação Digital no Agro","para_oe":"07. Tecnologias Emergentes e Disruptivas","para_meta":"07.2. Até 2025, aumentar em 100% o número de usuários de aplicativos e sistemas digitais gerados pela Embrapa e parceiros. (meta de adoção) [META ENCERRADA: PN 2026]","para_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","sim":0.3955,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Sem DI atual corporativo","blocos":"","de_desafio":""},{"id":"SOL043","texto":"Metodologias e procedimentos informatizados voltados à afinação (fine-tuning) de grandes modelos de linguagem (LLM) e à geração de aumentada de recuperação (RAG) e softwares de perguntas e respostas para uso dos modelos pré-treinados na temática de agricultura","comp_ids":"","comp_texto":"","de_di":"Sem DI corporativo","de_port":"Sem correspondência na base corporativa","de_oe":"Não Vinculado","de_meta":"Não Vinculado","de_ods":"Sem ODS","para_di":"D076","para_desafio":"Promover soluções estratégicas em temas emergentes, promissores e portadores de futuro, a fim de viabilizar transformações no agro","para_port":"Transformação Digital no Agro","para_oe":"07. Tecnologias Emergentes e Disruptivas","para_meta":"07.1. Até 2027, ampliar a adoção de 60 soluções tecnológicas em automação e agricultura digital, pelo setor produtivo, para as cadeias agropecuárias desenvolvidas pela Embrapa e parceiros. (meta de adoção)","para_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","sim":0.5617,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Sem DI atual corporativo","blocos":"","de_desafio":""},{"id":"SOL006","texto":"Zoneamento agrogeológico das zonas de consumo e produção nas porções Sudoeste de Goiás, Sudeste de Mato Grosso e Norte de Mato Grosso do Sul,dos agrominerais potenciais da Província Alcalina de Goiás.","comp_ids":"","comp_texto":"","de_di":"D077","de_port":"Sistemas de Produção Sustentáveis e Resilientes","de_oe":"02. Recursos Naturais e Mudança do Clima","de_meta":"02.1. Até 2030, ampliar em 5,5 milhões de hectares com tecnologias da Embrapa para integração lavoura-pecuária-floresta, recuperação de áreas degradadas e restauração de ecossistemas (meta de adoção).","de_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","para_di":"D008","para_desafio":"Ampliar a produção, geração de produtos e subprodutos de Plantas Alimentícias Não Convencionais - Panc (ervas, hortaliças, frutíferas, entre outros) em sistemas agroecológicos, orgânicos, agroflorestais, agrícolas tradicionais e extrativistas para os biomas brasileiros","para_port":"Agroecologia e Inclusão Socioprodutiva","para_oe":"06. Inclusão Socioprodutiva e Digital","para_meta":"Sem vínculo a Meta Estratégica (OE 06)","para_ods":"12. Assegurar padrões de produção e de consumo sustentáveis","sim":0.5704,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Muda DI e portfólio","blocos":"","de_desafio":"Propor alternativas tecnológicas na recuperação e/ou conversão de pastagens degradadas"},{"id":"SOL002","texto":"Metodologia para avaliação de riscos e ferramentas para a tomada de decisão relacionadas com o cultivo de trigo na região tropical do Brasil Central.","comp_ids":"COMP002","comp_texto":"Até 2025, diversificar a produção de grãos via novas cultivares de cereais de inverno e aprimoramento de processos agropecuários, visando diversificação de culturas, melhor uso da terra e maior geração de renda.","de_di":"D018","de_port":"Sistemas de Produção Sustentáveis e Resilientes","de_oe":"01. Produção Sustentável e Competitividade","de_meta":"01.1. Até 2030, incrementar, em média, em 5% o benefício econômico gerado por práticas agropecuárias e tecnologias sustentáveis redutoras de custos desenvolvidas pela Embrapa (meta de impacto)","de_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","para_di":"D037","para_desafio":"Disponibilizar modelos e indicadores para fomentar sistemas de informação de previsão de oportunidades ecológicas para emergência de doenças e pragas em sistemas agroalimentares e florestais, em apoio às estratégias e políticas públicas de prevenção e controle nos diferentes biomas brasileiros","para_port":"Bioeficiência na Agropecuária","para_oe":"04. Segurança Alimentar e Saúde Única","para_meta":"04.1. Até 2025, aumentar em 30% o impacto econômico gerado por tecnologias desenvolvidas pela Embrapa e parceiros para o manejo de problemas zoofitossanitários. (meta de impacto) [META ENCERRADA: PN 2026]","para_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","sim":0.6274,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Muda DI e portfólio","blocos":"C03 - Alinhamento ao OE 2","de_desafio":"Aumentar a competitividade de sistemas de produção consolidados, avançando na proposição de novas práticas, tecnologias, métricas e/ou indicadores que evidenciam a maior eficiência no uso dos insumos e/ou recursos de produção, elevando a qualidade dos produtos obtidos da atividade agropecuária"},{"id":"SOL005","texto":"Bases de dados da logística de suprimentos de nutrientes para a agricultura brasileira: fontes alternativas de nutrientes.","comp_ids":"COMP004","comp_texto":"(Compartilhado - Líder) Desenvolver e validar bancos de dados, mapeamentos e zoneamentos para ampliar o conhecimento territorial das fontes convencionais, jazidas potenciais e resíduos agroindustriais para o suprimento e demanda de nutrientes e corretivos das principais cadeias produtivas agrícolas até 2025.","de_di":"D077","de_port":"Sistemas de Produção Sustentáveis e Resilientes","de_oe":"02. Recursos Naturais e Mudança do Clima","de_meta":"02.1. Até 2030, ampliar em 5,5 milhões de hectares com tecnologias da Embrapa para integração lavoura-pecuária-floresta, recuperação de áreas degradadas e restauração de ecossistemas (meta de adoção).","de_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","para_di":"D102","para_desafio":"Viabilizar soluções tecnológicas e estratégias seguras, orientadas nas premissas da Saúde Única, para fortalecer as cadeias produtivas de sistemas agroalimentares que formam a base da dieta brasileira, considerando-se as especificidades regionais e nutricionais","para_port":"Bioeficiência na Agropecuária","para_oe":"04. Segurança Alimentar e Saúde Única","para_meta":"04.1. Até 2027, aumentar em 20% o número de ações de apoio à inovação às cadeias produtivas dos alimentos que formam a base da dieta brasileira, considerando as especificidades regionais (meta de melhoria de processo).","para_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","sim":0.7057,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Muda DI e portfólio","blocos":"C02 - Alinhamento ao OE 1 | C04 - Alinhamento ao OE 3 | C06 - Alinhamento ao OE 5","de_desafio":"Propor alternativas tecnológicas na recuperação e/ou conversão de pastagens degradadas"},{"id":"SOL003","texto":"Mapeamento da aptidão agrícola no Brasil e zoneamento de uso potencial de áreas com pastagem em processo de degradação.","comp_ids":"","comp_texto":"","de_di":"D077","de_port":"Sistemas de Produção Sustentáveis e Resilientes","de_oe":"02. Recursos Naturais e Mudança do Clima","de_meta":"02.1. Até 2030, ampliar em 5,5 milhões de hectares com tecnologias da Embrapa para integração lavoura-pecuária-floresta, recuperação de áreas degradadas e restauração de ecossistemas (meta de adoção).","de_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","para_di":"D027","para_desafio":"Desenvolver, aperfeiçoar e integrar ferramentas, métodos, indicadores e modelos para caracterização e prognóstico do uso sustentável dos solos nas diferentes paisagens brasileiras","para_port":"Clima, recursos naturais e transformação ecológica","para_oe":"02. Recursos Naturais e Mudança do Clima","para_meta":"02.4. Até 2027, aumentar em 30% o número de soluções tecnológicas disponibilizadas para o enfrentamento da pressão sobre os biomas, da mudança do clima, e para o uso sustentável dos recursos genéticos e naturais e das fontes renováveis de energia. (meta de produto) [META ENCERRADA: PN 2026]","para_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","sim":0.784,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Muda DI e portfólio","blocos":"","de_desafio":"Propor alternativas tecnológicas na recuperação e/ou conversão de pastagens degradadas"},{"id":"SOL004","texto":"Mapeamentos, bases de dados e apoio à formulação ou execução de políticas públicas, com vistas ao uso sustentável das terras, particularmente à recuperação e incorporação de áreas de pastagens degradadas ao processo de intensificação sustentável da produção na região do MATOPIBA.","comp_ids":"COMP003","comp_texto":"(Compartilhado - Líder) Desenvolver e validar a campo, metodologia para o mapeamento do nível de degradação de pastagens no bioma Cerrado por meio do sensoriamento remoto até 2024.","de_di":"D077","de_port":"Sistemas de Produção Sustentáveis e Resilientes","de_oe":"02. Recursos Naturais e Mudança do Clima","de_meta":"02.1. Até 2030, ampliar em 5,5 milhões de hectares com tecnologias da Embrapa para integração lavoura-pecuária-floresta, recuperação de áreas degradadas e restauração de ecossistemas (meta de adoção).","de_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","para_di":"D067","para_desafio":"Promover a saúde e a capacidade produtiva dos solos, principalmente em áreas degradadas ou em processo de degradação considerando as diversidades regionais e a identidade territorial","para_port":"Clima, recursos naturais e transformação ecológica","para_oe":"02. Recursos Naturais e Mudança do Clima","para_meta":"02.1. Até 2030, ampliar em 5,5 milhões de hectares com tecnologias da Embrapa para integração lavoura-pecuária-floresta, recuperação de áreas degradadas e restauração de ecossistemas (meta de adoção).","para_ods":"15. Proteger, recuperar e promover o uso sustentável dos ecossistemas terrestres, gerir de forma sustentável as florestas, combater a desertificação, deter e reverter a degradação da terra e deter a perda de biodiversidade","sim":0.7199,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Muda DI e portfólio","blocos":"C02 - Alinhamento ao OE 1 | C03 - Alinhamento ao OE 2 | C04 - Alinhamento ao OE 3 | C05 - Alinhamento ao OE 4 | C06 - Alinhamento ao OE 5","de_desafio":"Propor alternativas tecnológicas na recuperação e/ou conversão de pastagens degradadas"},{"id":"SOL001","texto":"Sensoriamento de pomar de macieira para geração de informação de manejo e de produção","comp_ids":"","comp_texto":"","de_di":"D018","de_port":"Sistemas de Produção Sustentáveis e Resilientes","de_oe":"01. Produção Sustentável e Competitividade","de_meta":"01.1. Até 2030, incrementar, em média, em 5% o benefício econômico gerado por práticas agropecuárias e tecnologias sustentáveis redutoras de custos desenvolvidas pela Embrapa (meta de impacto)","de_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","para_di":"D074","para_desafio":"Promover soluções ciber físicas e digitais para apoiar a gestão das unidades agroprodutivas e agregar valor aos produtos","para_port":"Transformação Digital no Agro","para_oe":"07. Tecnologias Emergentes e Disruptivas","para_meta":"07.1. Até 2027, ampliar a adoção de 60 soluções tecnológicas em automação e agricultura digital, pelo setor produtivo, para as cadeias agropecuárias desenvolvidas pela Embrapa e parceiros. (meta de adoção)","para_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","sim":0.5212,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Muda DI e portfólio","blocos":"","de_desafio":"Aumentar a competitividade de sistemas de produção consolidados, avançando na proposição de novas práticas, tecnologias, métricas e/ou indicadores que evidenciam a maior eficiência no uso dos insumos e/ou recursos de produção, elevando a qualidade dos produtos obtidos da atividade agropecuária"},{"id":"SOL029","texto":"Estruturação e implementação da plataforma dos hubs virtuais de caprinos e ovinos para promoção da conectividade e desenvolvimento da cadeia produtiva","comp_ids":"COMP026","comp_texto":"Disponibilizar ferramentas de tomada de decisão para o uso sustentável dos recursos em propriedades do semiárido até 2025, contribuindo para a segurança alimentar dos rebanhos e aumento da resiliência dos sistemas de produção.","de_di":"D075","de_port":"Transformação Digital no Agro","de_oe":"07. Tecnologias Emergentes e Disruptivas","de_meta":"07.1. Até 2027, ampliar a adoção de 60 soluções tecnológicas em automação e agricultura digital, pelo setor produtivo, para as cadeias agropecuárias desenvolvidas pela Embrapa e parceiros. (meta de adoção)","de_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","para_di":"D046","para_desafio":"Fortalecer redes sociotécnicas com laboratórios ou nichos de inovação social e tecnológica para gestão organizacional, diversificação produtiva e acesso a mercados locais, associados à pluriatividade e à multifuncionalidade dos espaços rural, urbano, periurbano e das regiões costeiras","para_port":"Agroecologia e Inclusão Socioprodutiva","para_oe":"06. Inclusão Socioprodutiva e Digital","para_meta":"Sem vínculo a Meta Estratégica (OE 06)","para_ods":"12. Assegurar padrões de produção e de consumo sustentáveis","sim":0.5027,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Muda DI e portfólio","blocos":"C02 - Alinhamento ao OE 1 | C05 - Alinhamento ao OE 4 | C06 - Alinhamento ao OE 5 | C07 - Alinhamento ao OE 6","de_desafio":"Promover soluções ciber físicas e digitais para impulsionar a transformação dos processos agroprodutivos, considerando os diferentes níveis tecnológicos das unidades produtivas"},{"id":"SOL032","texto":"Definição e operacionalização do conceito de bacias logísticas de escoamento dos principais produtos de exportação da agropecuária brasileira.","comp_ids":"COMP027","comp_texto":"(Compartilhado - Líder) Promover a adoção da tecnologia já disponível, aperfeiçoar e atualizar o Sistema de Inteligência Territorial Estratégica da Macrologística da Agropecuária Brasileira (Site_MLog) até 2024.","de_di":"D098","de_port":"Transformação Digital no Agro","de_oe":"01. Produção Sustentável e Competitividade","de_meta":"01.3. Até 2030, aumentar em 10% os benefícios econômicos derivados do Zoneamento de Risco Climático (Zarc) com apoio da Embrapa e parceiros. (meta de impacto)","de_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","para_di":"D008","para_desafio":"Ampliar a produção, geração de produtos e subprodutos de Plantas Alimentícias Não Convencionais - Panc (ervas, hortaliças, frutíferas, entre outros) em sistemas agroecológicos, orgânicos, agroflorestais, agrícolas tradicionais e extrativistas para os biomas brasileiros","para_port":"Agroecologia e Inclusão Socioprodutiva","para_oe":"06. Inclusão Socioprodutiva e Digital","para_meta":"Sem vínculo a Meta Estratégica (OE 06)","para_ods":"12. Assegurar padrões de produção e de consumo sustentáveis","sim":0.6481,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Muda DI e portfólio","blocos":"C01 - Declaração do foco de atuação | C02 - Alinhamento ao OE 1","de_desafio":"Viabilizar plataformas digitais para a gestão de dados e informações científicas, como apoio ao setor agroprodutivo, às políticas públicas, à pesquisa e à inovação no agro"},{"id":"SOL035","texto":"Ações de Transferência de Tecnologias para apoiar a extensão rural do Estado de Minas Gerais.","comp_ids":"COMP024","comp_texto":"Até 2025, ampliar o uso de soluções tecnológicas, baseadas em inteligência territorial estratégica, apoiando a tomada de decisão de agentes produtivos e formuladores de políticas públicas do setor.","de_di":"D098","de_port":"Transformação Digital no Agro","de_oe":"01. Produção Sustentável e Competitividade","de_meta":"01.3. Até 2030, aumentar em 10% os benefícios econômicos derivados do Zoneamento de Risco Climático (Zarc) com apoio da Embrapa e parceiros. (meta de impacto)","de_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","para_di":"D069","para_desafio":"Promover estudos colaborativos e codesenvolver estratégias para fortalecer o turismo rural, agroecológico, agroflorestal, agrícola tradicional, extrativista, etnoturismo, gastronômico e de base comunitária para o desenvolvimento local","para_port":"Agroecologia e Inclusão Socioprodutiva","para_oe":"06. Inclusão Socioprodutiva e Digital","para_meta":"Sem vínculo a Meta Estratégica (OE 06)","para_ods":"8. Promover o crescimento econômico sustentado, inclusivo e sustentável, emprego pleno e produtivo, e trabalho decente para todos","sim":0.5347,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Muda DI e portfólio","blocos":"C07 - Alinhamento ao OE 6 | C08 - Alinhamento ao OE 7 | C10 - Considerações finais e continuidade","de_desafio":"Viabilizar plataformas digitais para a gestão de dados e informações científicas, como apoio ao setor agroprodutivo, às políticas públicas, à pesquisa e à inovação no agro"},{"id":"SOL036","texto":"Capacitação de extensionistas e técnicos da Assistência Rural do Tocantins sobre o uso da tecnologia GeoMatopiba e avaliação de seus impactos econômicos, sociais e ambientais.","comp_ids":"COMP024","comp_texto":"Até 2025, ampliar o uso de soluções tecnológicas, baseadas em inteligência territorial estratégica, apoiando a tomada de decisão de agentes produtivos e formuladores de políticas públicas do setor.","de_di":"D098","de_port":"Transformação Digital no Agro","de_oe":"01. Produção Sustentável e Competitividade","de_meta":"01.3. Até 2030, aumentar em 10% os benefícios econômicos derivados do Zoneamento de Risco Climático (Zarc) com apoio da Embrapa e parceiros. (meta de impacto)","de_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","para_di":"D069","para_desafio":"Promover estudos colaborativos e codesenvolver estratégias para fortalecer o turismo rural, agroecológico, agroflorestal, agrícola tradicional, extrativista, etnoturismo, gastronômico e de base comunitária para o desenvolvimento local","para_port":"Agroecologia e Inclusão Socioprodutiva","para_oe":"06. Inclusão Socioprodutiva e Digital","para_meta":"Sem vínculo a Meta Estratégica (OE 06)","para_ods":"8. Promover o crescimento econômico sustentado, inclusivo e sustentável, emprego pleno e produtivo, e trabalho decente para todos","sim":0.5611,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Muda DI e portfólio","blocos":"C07 - Alinhamento ao OE 6 | C08 - Alinhamento ao OE 7 | C09 - Justificativas técnicas e estratégicas | C10 - Considerações finais e continuidade","de_desafio":"Viabilizar plataformas digitais para a gestão de dados e informações científicas, como apoio ao setor agroprodutivo, às políticas públicas, à pesquisa e à inovação no agro"},{"id":"SOL028","texto":"Sistema computacional baseado em Inteligência Artificial para simulação do impacto de políticas públicas de incentivos diretos e indiretos à diversidade em sistemas socioambientais de produção agrícola considerando diferentes contextos econômicos e climáticos no Litoral Norte e Agreste Baiano.","comp_ids":"COMP025","comp_texto":"[Compartilhado] Prover 15 soluções tecnológicas para disponibilizar dados, informações, algoritmos e modelos agrometeorológicos, de pecuária, da agricultura e fitossanitários de suporte à decisão na agricultura até 2025.","de_di":"D075","de_port":"Transformação Digital no Agro","de_oe":"07. Tecnologias Emergentes e Disruptivas","de_meta":"07.1. Até 2027, ampliar a adoção de 60 soluções tecnológicas em automação e agricultura digital, pelo setor produtivo, para as cadeias agropecuárias desenvolvidas pela Embrapa e parceiros. (meta de adoção)","de_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","para_di":"D037","para_desafio":"Disponibilizar modelos e indicadores para fomentar sistemas de informação de previsão de oportunidades ecológicas para emergência de doenças e pragas em sistemas agroalimentares e florestais, em apoio às estratégias e políticas públicas de prevenção e controle nos diferentes biomas brasileiros","para_port":"Bioeficiência na Agropecuária","para_oe":"04. Segurança Alimentar e Saúde Única","para_meta":"04.1. Até 2025, aumentar em 30% o impacto econômico gerado por tecnologias desenvolvidas pela Embrapa e parceiros para o manejo de problemas zoofitossanitários. (meta de impacto) [META ENCERRADA: PN 2026]","para_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","sim":0.6183,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Muda DI e portfólio","blocos":"C02 - Alinhamento ao OE 1 | C03 - Alinhamento ao OE 2 | C07 - Alinhamento ao OE 6","de_desafio":"Promover soluções ciber físicas e digitais para impulsionar a transformação dos processos agroprodutivos, considerando os diferentes níveis tecnológicos das unidades produtivas"},{"id":"SOL025","texto":"Mapeamentos, banco de dados e estudos prospectivos para a gestão hídrica superficial e subterrânea sustentável, junto à identificação de estruturas de biodigestores da suinocultura e avicultura e tanques-rede da aquicultura no estado do Paraná","comp_ids":"COMP022","comp_texto":"Disponibilizar dados e informações espaciais estratégicas para ampliar o conhecimento territorial sobre os aspectos hídricos e as áreas agrícolas irrigadas, como apoio às tomadas de decisões, nas esferas pública e privada, até 2025.","de_di":"D078","de_port":"Transformação Digital no Agro","de_oe":"07. Tecnologias Emergentes e Disruptivas","de_meta":"07.2. Até 2025, aumentar em 100% o número de usuários de aplicativos e sistemas digitais gerados pela Embrapa e parceiros. (meta de adoção) [META ENCERRADA: PN 2026]","de_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","para_di":"D035","para_desafio":"Desenvolver soluções para manejo e gestão da água, visando a conservação de fontes superficiais e subterrâneas, em bacias hidrográficas nos agroecossistemas e ecossistemas naturais","para_port":"Clima, recursos naturais e transformação ecológica","para_oe":"02. Recursos Naturais e Mudança do Clima","para_meta":"02.4. Até 2027, aumentar em 30% o número de soluções tecnológicas disponibilizadas para o enfrentamento da pressão sobre os biomas, da mudança do clima, e para o uso sustentável dos recursos genéticos e naturais e das fontes renováveis de energia. (meta de produto) [META ENCERRADA: PN 2026]","para_ods":"6. Garantir disponibilidade e manejo sustentável da água e saneamento para todos","sim":0.7128,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Muda DI e portfólio","blocos":"C01 - Declaração do foco de atuação | C03 - Alinhamento ao OE 2 | C05 - Alinhamento ao OE 4 | C08 - Alinhamento ao OE 7 | C09 - Justificativas técnicas e estratégicas | C10 - Considerações finais e continuidade","de_desafio":"Prover soluções em inteligência geográfica para apoiar o setor agroprodutivo, o desenvolvimento territorial e as políticas públicas"},{"id":"SOL026","texto":"Atualização, validação e avaliação da qualidade dos dados geoespaciais do mapeamento de viveiros escavados da aquicultura no Brasil.","comp_ids":"COMP023","comp_texto":"[Compartilhado - Parceira] Desenvolver, atualizar e aperfeiçoar o sistema de inteligência territorial estratégica para aquicultura (Site_Aqui), ampliando os canais de acesso (app ou mobile) até 2025","de_di":"D078","de_port":"Transformação Digital no Agro","de_oe":"07. Tecnologias Emergentes e Disruptivas","de_meta":"07.2. Até 2025, aumentar em 100% o número de usuários de aplicativos e sistemas digitais gerados pela Embrapa e parceiros. (meta de adoção) [META ENCERRADA: PN 2026]","de_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","para_di":"D012","para_desafio":"Ampliar o conhecimento e a disponibilização de informações sobre a ocorrência e distribuição dos solos brasileiros e suas interpretações técnicas","para_port":"Clima, recursos naturais e transformação ecológica","para_oe":"02. Recursos Naturais e Mudança do Clima","para_meta":"02.1. Até 2025, ampliar em 100% o número de usuários de plataformas digitais de dados espaço-temporais integrados para o território brasileiro desenvolvidas pela Embrapa e parceiros. (meta de adoção) [META ENCERRADA: PN 2026]","para_ods":"15. Proteger, recuperar e promover o uso sustentável dos ecossistemas terrestres, gerir de forma sustentável as florestas, combater a desertificação, deter e reverter a degradação da terra e deter a perda de biodiversidade","sim":0.7954,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Muda DI e portfólio","blocos":"C01 - Declaração do foco de atuação | C08 - Alinhamento ao OE 7 | C09 - Justificativas técnicas e estratégicas | C10 - Considerações finais e continuidade","de_desafio":"Prover soluções em inteligência geográfica para apoiar o setor agroprodutivo, o desenvolvimento territorial e as políticas públicas"},{"id":"SOL031","texto":"Bases de dados de produção da agropecuária brasileira.","comp_ids":"COMP027","comp_texto":"(Compartilhado - Líder) Promover a adoção da tecnologia já disponível, aperfeiçoar e atualizar o Sistema de Inteligência Territorial Estratégica da Macrologística da Agropecuária Brasileira (Site_MLog) até 2024.","de_di":"D098","de_port":"Transformação Digital no Agro","de_oe":"01. Produção Sustentável e Competitividade","de_meta":"01.3. Até 2030, aumentar em 10% os benefícios econômicos derivados do Zoneamento de Risco Climático (Zarc) com apoio da Embrapa e parceiros. (meta de impacto)","de_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","para_di":"D012","para_desafio":"Ampliar o conhecimento e a disponibilização de informações sobre a ocorrência e distribuição dos solos brasileiros e suas interpretações técnicas","para_port":"Clima, recursos naturais e transformação ecológica","para_oe":"02. Recursos Naturais e Mudança do Clima","para_meta":"02.1. Até 2025, ampliar em 100% o número de usuários de plataformas digitais de dados espaço-temporais integrados para o território brasileiro desenvolvidas pela Embrapa e parceiros. (meta de adoção) [META ENCERRADA: PN 2026]","para_ods":"15. Proteger, recuperar e promover o uso sustentável dos ecossistemas terrestres, gerir de forma sustentável as florestas, combater a desertificação, deter e reverter a degradação da terra e deter a perda de biodiversidade","sim":0.7248,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Muda DI e portfólio","blocos":"C01 - Declaração do foco de atuação | C08 - Alinhamento ao OE 7 | C09 - Justificativas técnicas e estratégicas","de_desafio":"Viabilizar plataformas digitais para a gestão de dados e informações científicas, como apoio ao setor agroprodutivo, às políticas públicas, à pesquisa e à inovação no agro"},{"id":"SOL034","texto":"Mapeamentos, levantamentos e indicação de tecnologias para a gestão hídrica sustentável e aproveitamento de resíduos da suinocultura, avicultura e piscicultura.","comp_ids":"COMP023","comp_texto":"[Compartilhado - Parceira] Desenvolver, atualizar e aperfeiçoar o sistema de inteligência territorial estratégica para aquicultura (Site_Aqui), ampliando os canais de acesso (app ou mobile) até 2025","de_di":"D098","de_port":"Transformação Digital no Agro","de_oe":"01. Produção Sustentável e Competitividade","de_meta":"01.3. Até 2030, aumentar em 10% os benefícios econômicos derivados do Zoneamento de Risco Climático (Zarc) com apoio da Embrapa e parceiros. (meta de impacto)","de_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","para_di":"D035","para_desafio":"Desenvolver soluções para manejo e gestão da água, visando a conservação de fontes superficiais e subterrâneas, em bacias hidrográficas nos agroecossistemas e ecossistemas naturais","para_port":"Clima, recursos naturais e transformação ecológica","para_oe":"02. Recursos Naturais e Mudança do Clima","para_meta":"02.4. Até 2027, aumentar em 30% o número de soluções tecnológicas disponibilizadas para o enfrentamento da pressão sobre os biomas, da mudança do clima, e para o uso sustentável dos recursos genéticos e naturais e das fontes renováveis de energia. (meta de produto) [META ENCERRADA: PN 2026]","para_ods":"6. Garantir disponibilidade e manejo sustentável da água e saneamento para todos","sim":0.715,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Muda DI e portfólio","blocos":"C02 - Alinhamento ao OE 1 | C03 - Alinhamento ao OE 2 | C04 - Alinhamento ao OE 3 | C05 - Alinhamento ao OE 4 | C06 - Alinhamento ao OE 5 | C07 - Alinhamento ao OE 6 | C08 - Alinhamento ao OE 7 | C09 - Justificativas técnicas e estratégicas | C10 - Considerações finais e continuidade","de_desafio":"Viabilizar plataformas digitais para a gestão de dados e informações científicas, como apoio ao setor agroprodutivo, às políticas públicas, à pesquisa e à inovação no agro"},{"id":"SOL037","texto":"Plataforma digital de dados territoriais qualificados do fenômeno dos desmatamentos no Bioma Amazônia e suas relações com indicadores econômicos, sociais e ambientais","comp_ids":"","comp_texto":"","de_di":"D098","de_port":"Transformação Digital no Agro","de_oe":"01. Produção Sustentável e Competitividade","de_meta":"01.3. Até 2030, aumentar em 10% os benefícios econômicos derivados do Zoneamento de Risco Climático (Zarc) com apoio da Embrapa e parceiros. (meta de impacto)","de_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","para_di":"D031","para_desafio":"Desenvolver métodos e ferramentas para monitorar a relação de causa e efeito da conversão de ecossistemas naturais e mudança do uso da terra com a produção agropecuária, a perda de biodiversidade e contabilização de emissões de GEE nos Biomas brasileiros","para_port":"Clima, recursos naturais e transformação ecológica","para_oe":"02. Recursos Naturais e Mudança do Clima","para_meta":"02.1. Até 2030, ampliar em 5,5 milhões de hectares com tecnologias da Embrapa para integração lavoura-pecuária-floresta, recuperação de áreas degradadas e restauração de ecossistemas (meta de adoção).","para_ods":"13. Tomar medidas urgentes para combater a mudança climática e seus impactos","sim":0.6775,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Muda DI e portfólio","blocos":"","de_desafio":"Viabilizar plataformas digitais para a gestão de dados e informações científicas, como apoio ao setor agroprodutivo, às políticas públicas, à pesquisa e à inovação no agro"},{"id":"SOL039","texto":"Atribuição, uso e ocupação das terras no Brasil e nos Biomas Amazônia e Cerrado","comp_ids":"COMP030","comp_texto":"Não Vinculado","de_di":"D078","de_port":"Transformação Digital no Agro","de_oe":"07. Tecnologias Emergentes e Disruptivas","de_meta":"07.2. Até 2025, aumentar em 100% o número de usuários de aplicativos e sistemas digitais gerados pela Embrapa e parceiros. (meta de adoção) [META ENCERRADA: PN 2026]","de_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","para_di":"D031","para_desafio":"Desenvolver métodos e ferramentas para monitorar a relação de causa e efeito da conversão de ecossistemas naturais e mudança do uso da terra com a produção agropecuária, a perda de biodiversidade e contabilização de emissões de GEE nos Biomas brasileiros","para_port":"Clima, recursos naturais e transformação ecológica","para_oe":"02. Recursos Naturais e Mudança do Clima","para_meta":"02.1. Até 2030, ampliar em 5,5 milhões de hectares com tecnologias da Embrapa para integração lavoura-pecuária-floresta, recuperação de áreas degradadas e restauração de ecossistemas (meta de adoção).","para_ods":"13. Tomar medidas urgentes para combater a mudança climática e seus impactos","sim":0.7261,"mudou_di":"Sim","mudou_port":"Sim","tipo":"Muda DI e portfólio","blocos":"C01 - Declaração do foco de atuação","de_desafio":"Prover soluções em inteligência geográfica para apoiar o setor agroprodutivo, o desenvolvimento territorial e as políticas públicas"},{"id":"SOL024","texto":"Rede de organizações de agricultores familiares integrada com capacidade de autogestão na bacia leiteira caprina da Paraíba e Pernambuco.","comp_ids":"COMP021","comp_texto":"(Compartilhado) Promover a sustentabilidade e viabilizar a agregação de valor dos produtos oriundos de sistemas de produção com caprinocultura leiteira em territórios vulneráveis socioeconomicamente até 2025.","de_di":"D101","de_port":"Agroecologia e Inclusão Socioprodutiva","de_oe":"06. Inclusão Socioprodutiva e Digital","de_meta":"Sem vínculo a Meta Estratégica (OE 06)","de_ods":"8. Promover o crescimento econômico sustentado, inclusivo e sustentável, emprego pleno e produtivo, e trabalho decente para todos","para_di":"D107","para_desafio":"Viabilizar tecnologias sociais, práticas e processos de acesso e tratamento de água, inclusive salina, para fins de abastecimento doméstico e uso em sistemas de produção da agricultura familiar, povos indígenas, comunidades tradicionais, agricultura urbana e periurbana","para_port":"Agroecologia e Inclusão Socioprodutiva","para_oe":"06. Inclusão Socioprodutiva e Digital","para_meta":"Sem vínculo a Meta Estratégica (OE 06)","para_ods":"6. Garantir disponibilidade e manejo sustentável da água e saneamento para todos","sim":0.6203,"mudou_di":"Sim","mudou_port":"Não","tipo":"Muda DI no mesmo portfólio","blocos":"C04 - Alinhamento ao OE 3 | C07 - Alinhamento ao OE 6","de_desafio":"Viabilizar sistemas agroalimentares com sinais distintivos ou identidade territorial que geram renda (monetária e não monetária) e valor a populações em situação de vulnerabilidade socioeconômica ou produtiva"},{"id":"SOL017","texto":"Mapeamento das potenciais rotas de risco de ingresso e disseminação de 11 pragas quarentenárias priorizadas, com os respectivos atributos bióticos e abióticos, e banco de dados espaciais sobre barreiras sanitárias, com dados sobre infraestrutura, equipes e operações.","comp_ids":"COMP014","comp_texto":"[Compartilhado - Parceira] Promover a adoção pelo governo ou setor produtivo interessado em defesa fitossanitária, de metodologias, processos ou informações técnico-científicas para apoio a uma política pública nacional de defesa fitossanitária, até 2030. (7.1)","de_di":"D060","de_port":"Bioeficiência na Agropecuária","de_oe":"04. Segurança Alimentar e Saúde Única","de_meta":"04.1. Até 2025, aumentar em 30% o impacto econômico gerado por tecnologias desenvolvidas pela Embrapa e parceiros para o manejo de problemas zoofitossanitários. (meta de impacto) [META ENCERRADA: PN 2026]","de_ods":"12. Assegurar padrões de produção e de consumo sustentáveis","para_di":"D061","para_desafio":"Intensificar o aprimoramento do diagnóstico, controle, prevenção, monitoramento, vigilância e/ou erradicação de pragas e doenças que afetam negativamente cadeias produtivas agropecuária/florestal, paisagens naturais e/ou saúde pública","para_port":"Bioeficiência na Agropecuária","para_oe":"04. Segurança Alimentar e Saúde Única","para_meta":"04.1. Até 2025, aumentar em 30% o impacto econômico gerado por tecnologias desenvolvidas pela Embrapa e parceiros para o manejo de problemas zoofitossanitários. (meta de impacto) [META ENCERRADA: PN 2026]","para_ods":"15. Proteger, recuperar e promover o uso sustentável dos ecossistemas terrestres, gerir de forma sustentável as florestas, combater a desertificação, deter e reverter a degradação da terra e deter a perda de biodiversidade","sim":0.6218,"mudou_di":"Sim","mudou_port":"Não","tipo":"Muda DI no mesmo portfólio","blocos":"C05 - Alinhamento ao OE 4","de_desafio":"Intensificar o aprimoramento da rastreabilidade, diagnóstico, prevenção e controle de contaminantes físicos, químicos e biológicos em produtos de origem animal e vegetal e/ou mitigar impactos e riscos relevantes na saúde única e em barreiras não tarifárias"},{"id":"SOL018","texto":"Módulo de sistema de monitoramento e alerta de ocorrência do bicudo do algodoeiro no Oeste da Bahia.","comp_ids":"COMP015","comp_texto":"Desenvolver e validar o Sistema de Alerta e Monitoramento Agrometeorológico e Fitossanitário para o Oeste da Bahia até 2025. (DESCONTINUADO)","de_di":"D060","de_port":"Bioeficiência na Agropecuária","de_oe":"04. Segurança Alimentar e Saúde Única","de_meta":"04.1. Até 2025, aumentar em 30% o impacto econômico gerado por tecnologias desenvolvidas pela Embrapa e parceiros para o manejo de problemas zoofitossanitários. (meta de impacto) [META ENCERRADA: PN 2026]","de_ods":"12. Assegurar padrões de produção e de consumo sustentáveis","para_di":"D061","para_desafio":"Intensificar o aprimoramento do diagnóstico, controle, prevenção, monitoramento, vigilância e/ou erradicação de pragas e doenças que afetam negativamente cadeias produtivas agropecuária/florestal, paisagens naturais e/ou saúde pública","para_port":"Bioeficiência na Agropecuária","para_oe":"04. Segurança Alimentar e Saúde Única","para_meta":"04.1. Até 2025, aumentar em 30% o impacto econômico gerado por tecnologias desenvolvidas pela Embrapa e parceiros para o manejo de problemas zoofitossanitários. (meta de impacto) [META ENCERRADA: PN 2026]","para_ods":"15. Proteger, recuperar e promover o uso sustentável dos ecossistemas terrestres, gerir de forma sustentável as florestas, combater a desertificação, deter e reverter a degradação da terra e deter a perda de biodiversidade","sim":0.5471,"mudou_di":"Sim","mudou_port":"Não","tipo":"Muda DI no mesmo portfólio","blocos":"C05 - Alinhamento ao OE 4","de_desafio":"Intensificar o aprimoramento da rastreabilidade, diagnóstico, prevenção e controle de contaminantes físicos, químicos e biológicos em produtos de origem animal e vegetal e/ou mitigar impactos e riscos relevantes na saúde única e em barreiras não tarifárias"},{"id":"SOL019","texto":"Tecnologias para aprimoramento e promoção das Boas Práticas Agropecuárias, controle de perigos biológicos e químicos no leite, do produtor ao consumidor.","comp_ids":"","comp_texto":"","de_di":"D062","de_port":"Bioeficiência na Agropecuária","de_oe":"04. Segurança Alimentar e Saúde Única","de_meta":"04.2. Até 2025, aumentar em 15% a adoção de tecnologias produzidas pela Embrapa e parceiros que preservem a qualidade nutricional, a segurança ou a vida útil de alimentos. (meta de adoção) [META ENCERRADA: PN 2026]","de_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","para_di":"D038","para_desafio":"Disponibilizar práticas e tecnologias que aumentem a eficiência da aplicação e uso de insumos agropecuários para prevenir ou mitigar impactos ambientais e aumentar a proteção da saúde pública","para_port":"Bioeficiência na Agropecuária","para_oe":"04. Segurança Alimentar e Saúde Única","para_meta":"04.1. Até 2027, aumentar em 20% o número de ações de apoio à inovação às cadeias produtivas dos alimentos que formam a base da dieta brasileira, considerando as especificidades regionais (meta de melhoria de processo).","para_ods":"3. Assegurar uma vida saudável e promover o bem-estar para todos, em todas as idades","sim":0.7299,"mudou_di":"Sim","mudou_port":"Não","tipo":"Muda DI no mesmo portfólio","blocos":"","de_desafio":"Melhorar qualidade, vida útil e/ou sanidade de produtos de origem animal e vegetal, com redução de perdas e de riscos ambientais associados"},{"id":"SOL007","texto":"Soluções tecnológicas para a superação dos efeitos na agricultura das enchentes e deslizamentos ocorridos no Rio Grande do Sul","comp_ids":"COMP005","comp_texto":"[Compartilhado] Desenvolver soluções para inovação que contribuam para o planejamento territorial e a adaptação de Sistemas Agrícolas às Mudanças Climáticas Globais até 2030.","de_di":"D017","de_port":"Clima, recursos naturais e transformação ecológica","de_oe":"02. Recursos Naturais e Mudança do Clima","de_meta":"02.1. Até 2030, ampliar em 5,5 milhões de hectares com tecnologias da Embrapa para integração lavoura-pecuária-floresta, recuperação de áreas degradadas e restauração de ecossistemas (meta de adoção).","de_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","para_di":"D019","para_desafio":"Aumentar a eficiência do uso e do reuso da água nos sistemas agrícolas, principalmente em bacias hidrográficas com déficit hídrico acentuado ou agravado pela mudança do clima, reduzindo o impacto ambiental","para_port":"Clima, recursos naturais e transformação ecológica","para_oe":"02. Recursos Naturais e Mudança do Clima","para_meta":"02.4. Até 2027, aumentar em 30% o número de soluções tecnológicas disponibilizadas para o enfrentamento da pressão sobre os biomas, da mudança do clima, e para o uso sustentável dos recursos genéticos e naturais e das fontes renováveis de energia. (meta de produto) [META ENCERRADA: PN 2026]","para_ods":"6. Garantir disponibilidade e manejo sustentável da água e saneamento para todos","sim":0.6376,"mudou_di":"Sim","mudou_port":"Não","tipo":"Muda DI no mesmo portfólio","blocos":"C03 - Alinhamento ao OE 2","de_desafio":"Aumentar a capacidade adaptativa e a resiliência dos sistemas de produção agrícola com maior impacto econômico projetado e relevância para segurança alimentar a partir de cenários de mudança climática"},{"id":"SOL008","texto":"Protocolo para avaliação de serviços ecossistêmicos do solo e sua ambiência sob intensificação sustentável da agricultura, integrando diferentes escalas espaciais.","comp_ids":"COMP006","comp_texto":"(Compartilhado) (DESCONTINUADO) Disponibilizar, até 2030, indicadores, protocolos e métricas para a avaliação e valoração dos serviços ambientais na paisagem rural, com destaque para os serviços relacionados ao solo e à água.","de_di":"D001","de_port":"Clima, recursos naturais e transformação ecológica","de_oe":"02. Recursos Naturais e Mudança do Clima","de_meta":"02.3. Até 2025, disponibilizar 5 sistemas de manejo desenvolvidos pela Embrapa e parceiros para o manejo sustentável de florestas naturais adaptados às diferentes regiões brasileiras. (meta de produto) [META ENCERRADA: PN 2026]","de_ods":"15. Proteger, recuperar e promover o uso sustentável dos ecossistemas terrestres, gerir de forma sustentável as florestas, combater a desertificação, deter e reverter a degradação da terra e deter a perda de biodiversidade","para_di":"D006","para_desafio":"Ampliar a multifuncionalidade da paisagem para garantir a manutenção dos serviços ecossistêmicos em áreas de produção agropecuária, agroflorestal e florestal","para_port":"Clima, recursos naturais e transformação ecológica","para_oe":"02. Recursos Naturais e Mudança do Clima","para_meta":"02.4. Até 2027, aumentar em 30% o número de soluções tecnológicas disponibilizadas para o enfrentamento da pressão sobre os biomas, da mudança do clima, e para o uso sustentável dos recursos genéticos e naturais e das fontes renováveis de energia. (meta de produto) [META ENCERRADA: PN 2026]","para_ods":"15. Proteger, recuperar e promover o uso sustentável dos ecossistemas terrestres, gerir de forma sustentável as florestas, combater a desertificação, deter e reverter a degradação da terra e deter a perda de biodiversidade","sim":0.7841,"mudou_di":"Sim","mudou_port":"Não","tipo":"Muda DI no mesmo portfólio","blocos":"C02 - Alinhamento ao OE 1 | C03 - Alinhamento ao OE 2 | C04 - Alinhamento ao OE 3 | C05 - Alinhamento ao OE 4 | C06 - Alinhamento ao OE 5 | C07 - Alinhamento ao OE 6 | C10 - Considerações finais e continuidade","de_desafio":"Agregar valor aos produtos e serviços dos sistemas produtivos sustentáveis, sistemas agrícolas tradicionais, ecossistemas naturais e regiões ecotonais que promovam a capacidade adaptativa, o controle de emissões de GEE e/ou amplie os serviços ecossistêmicos"},{"id":"SOL009","texto":"Mapeamento de carbono e da biodiversidade faunística em áreas de produção citrícola, nos Estados de São Paulo e Minas Gerais.","comp_ids":"COMP007","comp_texto":"[Compartilhado - Parceira] Desenvolver e propor mecanismos de valoração e compensação de serviços ambientais para a agregação de valor no ambiente rural até 2030.","de_di":"D001","de_port":"Clima, recursos naturais e transformação ecológica","de_oe":"02. Recursos Naturais e Mudança do Clima","de_meta":"02.3. Até 2025, disponibilizar 5 sistemas de manejo desenvolvidos pela Embrapa e parceiros para o manejo sustentável de florestas naturais adaptados às diferentes regiões brasileiras. (meta de produto) [META ENCERRADA: PN 2026]","de_ods":"15. Proteger, recuperar e promover o uso sustentável dos ecossistemas terrestres, gerir de forma sustentável as florestas, combater a desertificação, deter e reverter a degradação da terra e deter a perda de biodiversidade","para_di":"D084","para_desafio":"Viabilizar a conservação e o uso sustentável das espécies florestais nativas vulneráveis e/ou em riscos de extinção nos biomas brasileiros","para_port":"Clima, recursos naturais e transformação ecológica","para_oe":"02. Recursos Naturais e Mudança do Clima","para_meta":"02.4. Até 2027, aumentar em 30% o número de soluções tecnológicas disponibilizadas para o enfrentamento da pressão sobre os biomas, da mudança do clima, e para o uso sustentável dos recursos genéticos e naturais e das fontes renováveis de energia. (meta de produto) [META ENCERRADA: PN 2026]","para_ods":"15. Proteger, recuperar e promover o uso sustentável dos ecossistemas terrestres, gerir de forma sustentável as florestas, combater a desertificação, deter e reverter a degradação da terra e deter a perda de biodiversidade","sim":0.7063,"mudou_di":"Sim","mudou_port":"Não","tipo":"Muda DI no mesmo portfólio","blocos":"C03 - Alinhamento ao OE 2 | C04 - Alinhamento ao OE 3 | C07 - Alinhamento ao OE 6","de_desafio":"Agregar valor aos produtos e serviços dos sistemas produtivos sustentáveis, sistemas agrícolas tradicionais, ecossistemas naturais e regiões ecotonais que promovam a capacidade adaptativa, o controle de emissões de GEE e/ou amplie os serviços ecossistêmicos"},{"id":"SOL011","texto":"Metodologia de avaliação dos serviços ecossistêmicos da produção orgânica","comp_ids":"COMP008","comp_texto":"(Compartilhado) Desenvolver, até 2027, ao menos uma solução de inovação que envolva métricas, indicadores e protocolos para agregação de valor a produtos agropecuários que deem suporte à certificação de propriedades rurais prestadoras de serviços ambientais.","de_di":"D028","de_port":"Clima, recursos naturais e transformação ecológica","de_oe":"02. Recursos Naturais e Mudança do Clima","de_meta":"02.4. Até 2027, aumentar em 30% o número de soluções tecnológicas disponibilizadas para o enfrentamento da pressão sobre os biomas, da mudança do clima, e para o uso sustentável dos recursos genéticos e naturais e das fontes renováveis de energia. (meta de produto) [META ENCERRADA: PN 2026]","de_ods":"12. Assegurar padrões de produção e de consumo sustentáveis","para_di":"D001","para_desafio":"Agregar valor aos produtos e serviços dos sistemas produtivos sustentáveis, sistemas agrícolas tradicionais, ecossistemas naturais e regiões ecotonais que promovam a capacidade adaptativa, o controle de emissões de GEE e/ou amplie os serviços ecossistêmicos","para_port":"Clima, recursos naturais e transformação ecológica","para_oe":"02. Recursos Naturais e Mudança do Clima","para_meta":"02.3. Até 2025, disponibilizar 5 sistemas de manejo desenvolvidos pela Embrapa e parceiros para o manejo sustentável de florestas naturais adaptados às diferentes regiões brasileiras. (meta de produto) [META ENCERRADA: PN 2026]","para_ods":"15. Proteger, recuperar e promover o uso sustentável dos ecossistemas terrestres, gerir de forma sustentável as florestas, combater a desertificação, deter e reverter a degradação da terra e deter a perda de biodiversidade","sim":0.6616,"mudou_di":"Sim","mudou_port":"Não","tipo":"Muda DI no mesmo portfólio","blocos":"C02 - Alinhamento ao OE 1 | C06 - Alinhamento ao OE 5","de_desafio":"Desenvolver indicadores e protocolos para contribuir com a certificação de produtos e/ou processos para manter e/ou ampliar os serviços ecossistêmicos"},{"id":"SOL014","texto":"Indicadores de saúde do solo e estoques de carbono em áreas sob reflorestamento, pastagem e vegetação nativa do semiárido","comp_ids":"COMP011","comp_texto":"[Compartilhado] Desenvolver, até 2027, pelo menos duas soluções tecnológicas que contribuam com a ampliação de serviços ambientais e a multifuncionalidade da paisagem em áreas de produção agropecuária e florestal.","de_di":"D006","de_port":"Clima, recursos naturais e transformação ecológica","de_oe":"02. Recursos Naturais e Mudança do Clima","de_meta":"02.4. Até 2027, aumentar em 30% o número de soluções tecnológicas disponibilizadas para o enfrentamento da pressão sobre os biomas, da mudança do clima, e para o uso sustentável dos recursos genéticos e naturais e das fontes renováveis de energia. (meta de produto) [META ENCERRADA: PN 2026]","de_ods":"15. Proteger, recuperar e promover o uso sustentável dos ecossistemas terrestres, gerir de forma sustentável as florestas, combater a desertificação, deter e reverter a degradação da terra e deter a perda de biodiversidade","para_di":"D067","para_desafio":"Promover a saúde e a capacidade produtiva dos solos, principalmente em áreas degradadas ou em processo de degradação considerando as diversidades regionais e a identidade territorial","para_port":"Clima, recursos naturais e transformação ecológica","para_oe":"02. Recursos Naturais e Mudança do Clima","para_meta":"02.1. Até 2030, ampliar em 5,5 milhões de hectares com tecnologias da Embrapa para integração lavoura-pecuária-floresta, recuperação de áreas degradadas e restauração de ecossistemas (meta de adoção).","para_ods":"15. Proteger, recuperar e promover o uso sustentável dos ecossistemas terrestres, gerir de forma sustentável as florestas, combater a desertificação, deter e reverter a degradação da terra e deter a perda de biodiversidade","sim":0.672,"mudou_di":"Sim","mudou_port":"Não","tipo":"Muda DI no mesmo portfólio","blocos":"C03 - Alinhamento ao OE 2 | C05 - Alinhamento ao OE 4 | C06 - Alinhamento ao OE 5","de_desafio":"Ampliar a multifuncionalidade da paisagem para garantir a manutenção dos serviços ecossistêmicos em áreas de produção agropecuária, agroflorestal e florestal"},{"id":"SOL027","texto":"Plataforma informatizada para hospedar ações de inteligência territorial estratégica como divulgação de tecnologias e registro de demandas por capacitação nos quatro estados que compõe a região sudeste","comp_ids":"COMP024","comp_texto":"Até 2025, ampliar o uso de soluções tecnológicas, baseadas em inteligência territorial estratégica, apoiando a tomada de decisão de agentes produtivos e formuladores de políticas públicas do setor.","de_di":"D098","de_port":"Transformação Digital no Agro","de_oe":"01. Produção Sustentável e Competitividade","de_meta":"01.3. Até 2030, aumentar em 10% os benefícios econômicos derivados do Zoneamento de Risco Climático (Zarc) com apoio da Embrapa e parceiros. (meta de impacto)","de_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","para_di":"D078","para_desafio":"Prover soluções em inteligência geográfica para apoiar o setor agroprodutivo, o desenvolvimento territorial e as políticas públicas","para_port":"Transformação Digital no Agro","para_oe":"07. Tecnologias Emergentes e Disruptivas","para_meta":"07.2. Até 2025, aumentar em 100% o número de usuários de aplicativos e sistemas digitais gerados pela Embrapa e parceiros. (meta de adoção) [META ENCERRADA: PN 2026]","para_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","sim":0.6604,"mudou_di":"Sim","mudou_port":"Não","tipo":"Muda DI no mesmo portfólio","blocos":"C01 - Declaração do foco de atuação | C08 - Alinhamento ao OE 7 | C09 - Justificativas técnicas e estratégicas | C10 - Considerações finais e continuidade","de_desafio":"Viabilizar plataformas digitais para a gestão de dados e informações científicas, como apoio ao setor agroprodutivo, às políticas públicas, à pesquisa e à inovação no agro"},{"id":"SOL030","texto":"Mapeamento de áreas irrigadas em Polos de Agricultura Irrigada da região centro-oeste","comp_ids":"COMP022","comp_texto":"Disponibilizar dados e informações espaciais estratégicas para ampliar o conhecimento territorial sobre os aspectos hídricos e as áreas agrícolas irrigadas, como apoio às tomadas de decisões, nas esferas pública e privada, até 2025.","de_di":"D078","de_port":"Transformação Digital no Agro","de_oe":"07. Tecnologias Emergentes e Disruptivas","de_meta":"07.2. Até 2025, aumentar em 100% o número de usuários de aplicativos e sistemas digitais gerados pela Embrapa e parceiros. (meta de adoção) [META ENCERRADA: PN 2026]","de_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","para_di":"D078","para_desafio":"Prover soluções em inteligência geográfica para apoiar o setor agroprodutivo, o desenvolvimento territorial e as políticas públicas","para_port":"Transformação Digital no Agro","para_oe":"07. Tecnologias Emergentes e Disruptivas","para_meta":"07.2. Até 2025, aumentar em 100% o número de usuários de aplicativos e sistemas digitais gerados pela Embrapa e parceiros. (meta de adoção) [META ENCERRADA: PN 2026]","para_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","sim":0.6205,"mudou_di":"Não","mudou_port":"Não","tipo":"Mantém DI","blocos":"C01 - Declaração do foco de atuação | C02 - Alinhamento ao OE 1 | C04 - Alinhamento ao OE 3 | C05 - Alinhamento ao OE 4 | C07 - Alinhamento ao OE 6 | C08 - Alinhamento ao OE 7 | C09 - Justificativas técnicas e estratégicas | C10 - Considerações finais e continuidade","de_desafio":"Prover soluções em inteligência geográfica para apoiar o setor agroprodutivo, o desenvolvimento territorial e as políticas públicas"},{"id":"SOL033","texto":"Plataforma do SITE-MLog expandida e atualizada, com a incorporação de novos dados e publicação de novos painéis interativos.","comp_ids":"COMP027","comp_texto":"(Compartilhado - Líder) Promover a adoção da tecnologia já disponível, aperfeiçoar e atualizar o Sistema de Inteligência Territorial Estratégica da Macrologística da Agropecuária Brasileira (Site_MLog) até 2024.","de_di":"D098","de_port":"Transformação Digital no Agro","de_oe":"01. Produção Sustentável e Competitividade","de_meta":"01.3. Até 2030, aumentar em 10% os benefícios econômicos derivados do Zoneamento de Risco Climático (Zarc) com apoio da Embrapa e parceiros. (meta de impacto)","de_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","para_di":"D098","para_desafio":"Viabilizar plataformas digitais para a gestão de dados e informações científicas, como apoio ao setor agroprodutivo, às políticas públicas, à pesquisa e à inovação no agro","para_port":"Transformação Digital no Agro","para_oe":"01. Produção Sustentável e Competitividade","para_meta":"01.3. Até 2030, aumentar em 10% os benefícios econômicos derivados do Zoneamento de Risco Climático (Zarc) com apoio da Embrapa e parceiros. (meta de impacto)","para_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","sim":0.3786,"mudou_di":"Não","mudou_port":"Não","tipo":"Mantém DI","blocos":"C09 - Justificativas técnicas e estratégicas","de_desafio":"Viabilizar plataformas digitais para a gestão de dados e informações científicas, como apoio ao setor agroprodutivo, às políticas públicas, à pesquisa e à inovação no agro"},{"id":"SOL038","texto":"Sistema de Inteligência Territorial Estratégica (SITE) da Baixada Cuiabana (MT) composto pela integração de banco de dados georreferenciados dos quadros natural, agrário, agrícola, socioeconômico e de infraestrutura da região e software para disponibilização e visualização de dados espaciais.","comp_ids":"COMP029","comp_texto":"Desenvolver, validar e promover a adoção de plataforma de gestão e monitoramento territorial voltada para a sustentabilidade (ambiental e econômica) da produção agropecuária nas propriedades rurais de áreas periurbanas, até 2025.","de_di":"D098","de_port":"Transformação Digital no Agro","de_oe":"01. Produção Sustentável e Competitividade","de_meta":"01.3. Até 2030, aumentar em 10% os benefícios econômicos derivados do Zoneamento de Risco Climático (Zarc) com apoio da Embrapa e parceiros. (meta de impacto)","de_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","para_di":"D078","para_desafio":"Prover soluções em inteligência geográfica para apoiar o setor agroprodutivo, o desenvolvimento territorial e as políticas públicas","para_port":"Transformação Digital no Agro","para_oe":"07. Tecnologias Emergentes e Disruptivas","para_meta":"07.2. Até 2025, aumentar em 100% o número de usuários de aplicativos e sistemas digitais gerados pela Embrapa e parceiros. (meta de adoção) [META ENCERRADA: PN 2026]","para_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","sim":0.6384,"mudou_di":"Sim","mudou_port":"Não","tipo":"Muda DI no mesmo portfólio","blocos":"C01 - Declaração do foco de atuação | C08 - Alinhamento ao OE 7 | C09 - Justificativas técnicas e estratégicas | C10 - Considerações finais e continuidade","de_desafio":"Viabilizar plataformas digitais para a gestão de dados e informações científicas, como apoio ao setor agroprodutivo, às políticas públicas, à pesquisa e à inovação no agro"},{"id":"SOL041","texto":"Geração de análises geoespaciais com inteligência territorial estratégica baseadas em temas relacionados ao Cadastro Ambiental Rural (CAR)","comp_ids":"COMP030","comp_texto":"Não Vinculado","de_di":"D078","de_port":"Transformação Digital no Agro","de_oe":"07. Tecnologias Emergentes e Disruptivas","de_meta":"07.2. Até 2025, aumentar em 100% o número de usuários de aplicativos e sistemas digitais gerados pela Embrapa e parceiros. (meta de adoção) [META ENCERRADA: PN 2026]","de_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","para_di":"D078","para_desafio":"Prover soluções em inteligência geográfica para apoiar o setor agroprodutivo, o desenvolvimento territorial e as políticas públicas","para_port":"Transformação Digital no Agro","para_oe":"07. Tecnologias Emergentes e Disruptivas","para_meta":"07.2. Até 2025, aumentar em 100% o número de usuários de aplicativos e sistemas digitais gerados pela Embrapa e parceiros. (meta de adoção) [META ENCERRADA: PN 2026]","para_ods":"2. Acabar com a fome, alcançar a segurança alimentar e melhoria da nutrição e promover a agricultura sustentável","sim":0.7195,"mudou_di":"Não","mudou_port":"Não","tipo":"Mantém DI","blocos":"C01 - Declaração do foco de atuação | C08 - Alinhamento ao OE 7","de_desafio":"Prover soluções em inteligência geográfica para apoiar o setor agroprodutivo, o desenvolvimento territorial e as políticas públicas"}];
+const PORT_COLORS = {
+  "Agroecologia e Inclusão Socioprodutiva": "#2a78d6",
+  "Bioeficiência na Agropecuária":           "#1baf7a",
+  "Biorrevolução":                           "#4a3aa7",
+  "Clima, recursos naturais e transformação ecológica": "#eda100",
+  "Economia da Biodiversidade":              "#e87ba4",
+  "Economia Verde":                          "#008300",
+  "Sistemas de Produção Sustentáveis e Resilientes": "#eb6834",
+  "Transformação Digital no Agro":           "#e34948",
+  "Sem correspondência na base corporativa": "#9aa5b1"
+};
+const PORT_ABBR = {
+  "Agroecologia e Inclusão Socioprodutiva":"Agroecologia",
+  "Bioeficiência na Agropecuária":"Bioeficiência",
+  "Biorrevolução":"Biorrevolução",
+  "Clima, recursos naturais e transformação ecológica":"Clima/RN",
+  "Economia da Biodiversidade":"Eco. Biodiv.",
+  "Economia Verde":"Economia Verde",
+  "Sistemas de Produção Sustentáveis e Resilientes":"Sist. Produção",
+  "Transformação Digital no Agro":"Transf. Digital",
+  "Sem correspondência na base corporativa":"Sem DI corporativo"
+};
+const ALL_PORTS = Object.keys(PORT_COLORS);
+const DEST_PORTS = ALL_PORTS.filter(p => p !== "Sem correspondência na base corporativa");
+
+const TIPO_COLOR = {
+  "Mantém DI": "#2d6a4f",
+  "Muda DI no mesmo portfólio": "#eda100",
+  "Muda DI e portfólio": "#c0392b",
+  "Sem DI atual corporativo": "#6b7a8d"
+};
+const TIPO_BADGE = {
+  "Mantém DI": "badge-ok",
+  "Muda DI no mesmo portfólio": "badge-warn",
+  "Muda DI e portfólio": "badge-err",
+  "Sem DI atual corporativo": "badge-mut"
+};
+const TIPO_ORDER = ["Mantém DI", "Muda DI no mesmo portfólio", "Muda DI e portfólio", "Sem DI atual corporativo"];
+
+let state = {
+  tab: 'overview',
+  search: '',
+  port: null,
+  tipo: null,
+  selectedFlow: null,   // portfolio sankey: {de,para}
+  selectedDI: null,     // DI tab: {de,para}
+  expandedRow: null,    // table
+  sortCol: 'sim',
+  sortDir: 'desc'
+};
+
+function norm(s){ return (s||'').toLowerCase(); }
+
+function getFiltered(){
+  return DATA.filter(d => {
+    if (state.port && d.de_port !== state.port && d.para_port !== state.port) return false;
+    if (state.tipo && d.tipo !== state.tipo) return false;
+    if (state.search) {
+      const q = norm(state.search);
+      const hay = norm([d.id, d.texto, d.de_desafio||'', d.para_desafio, d.de_di, d.para_di, d.comp_texto, d.blocos].join(' '));
+      if (!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+
+/* ---------------- TABS ---------------- */
+function initTabs(){
+  document.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+      btn.classList.add('active');
+      state.tab = btn.dataset.tab;
+      document.getElementById('panel-' + state.tab).classList.add('active');
+      document.getElementById('filterBarWrap').style.display = state.tab === 'overview' ? 'none' : 'block';
+      renderAll();
+    });
+  });
+  document.getElementById('filterBarWrap').style.display = 'none';
+}
+
+/* ---------------- FILTER BAR ---------------- */
+function initFilters(){
+  const portChips = document.getElementById('portChips');
+  portChips.innerHTML = '<span class="chip active" data-val="">Todos</span>' +
+    ALL_PORTS.map(p => '<span class="chip" data-val="' + p + '" style="border-color:' + PORT_COLORS[p] + '55">' + (PORT_ABBR[p]||p) + '</span>').join('');
+  portChips.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+    portChips.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+    c.classList.add('active');
+    state.port = c.dataset.val || null;
+    state.selectedFlow = null; state.selectedDI = null;
+    renderAll();
+  }));
+
+  const tipoChips = document.getElementById('tipoChips');
+  tipoChips.innerHTML = '<span class="chip active" data-val="">Todos</span>' +
+    TIPO_ORDER.map(t => '<span class="chip" data-val="' + t + '">' + t + '</span>').join('');
+  tipoChips.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
+    tipoChips.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+    c.classList.add('active');
+    state.tipo = c.dataset.val || null;
+    state.selectedFlow = null; state.selectedDI = null;
+    renderAll();
+  }));
+
+  const search = document.getElementById('searchInput');
+  search.addEventListener('input', () => {
+    state.search = search.value;
+    renderAll();
+  });
+
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    state.search = ''; state.port = null; state.tipo = null;
+    state.selectedFlow = null; state.selectedDI = null;
+    search.value = '';
+    [portChips, tipoChips].forEach(row => {
+      row.querySelectorAll('.chip').forEach(x => x.classList.remove('active'));
+      row.querySelector('.chip').classList.add('active');
+    });
+    renderAll();
+  });
+}
+
+function updateResultCount(data){
+  document.getElementById('resultCount').textContent = data.length + ' de ' + DATA.length + ' soluções';
+}
+
+/* ---------------- OVERVIEW ---------------- */
+function renderOverview(data){
+  const cross = data.filter(d => d.tipo === "Muda DI e portfólio").length;
+  const mesmo = data.filter(d => d.tipo === "Muda DI no mesmo portfólio").length;
+  const keep  = data.filter(d => d.tipo === "Mantém DI").length;
+  const sem   = data.filter(d => d.tipo === "Sem DI atual corporativo").length;
+  const avg   = data.length ? data.reduce((s,d) => s+d.sim, 0) / data.length : 0;
+  const diAtual = new Set(data.map(d => d.de_di)).size;
+  const diPara  = new Set(data.map(d => d.para_di)).size;
+
+  document.getElementById('ovStats').innerHTML =
+    '<div class="stat"><div class="n">' + data.length + '</div><div class="l">soluções</div></div>' +
+    '<div class="stat"><div class="n" style="color:#c0392b">' + cross + '</div><div class="l">muda portfólio</div></div>' +
+    '<div class="stat"><div class="n" style="color:#eda100">' + mesmo + '</div><div class="l">muda DI · mesmo portfólio</div></div>' +
+    '<div class="stat"><div class="n" style="color:#2d6a4f">' + keep + '</div><div class="l">mantém DI</div></div>' +
+    '<div class="stat"><div class="n" style="color:#6b7a8d">' + sem + '</div><div class="l">sem DI corporativo</div></div>' +
+    '<div class="stat"><div class="n">' + (avg*100).toFixed(1) + '%</div><div class="l">similaridade semântica média</div></div>' +
+    '<div class="stat"><div class="n">' + diAtual + ' → ' + diPara + '</div><div class="l">DI atuais → DI sugeridos distintos</div></div>';
+
+  renderBarBlock('ovTipo', countBy(data, 'tipo'), TIPO_COLOR, null, TIPO_ORDER);
+  renderBlocosChart('ovBlocos', data);
+}
+
+function countBy(data, field){
+  const m = {};
+  data.forEach(d => { m[d[field]] = (m[d[field]]||0) + 1; });
+  return m;
+}
+
+function renderBarBlock(elId, counts, colorMap, labelMap, order){
+  const total = Object.values(counts).reduce((a,b)=>a+b,0) || 1;
+  let entries = Object.entries(counts);
+  if (order) entries.sort((a,b) => order.indexOf(a[0]) - order.indexOf(b[0]));
+  else entries.sort((a,b)=>b[1]-a[1]);
+  const el = document.getElementById(elId);
+  if (!entries.length){ el.innerHTML = '<div class="empty-state" style="padding:1rem 0">Sem dados para os filtros atuais.</div>'; return; }
+  el.innerHTML = entries.map(([k,v]) => {
+    const label = labelMap ? (labelMap[k]||k) : k;
+    const color = (colorMap && colorMap[k]) || '#8c9eb4';
+    const w = (v/total*100).toFixed(1);
+    return '<div class="bar-row"><div class="blabel">' + label + '</div>' +
+      '<div class="bar-track"><div class="bar-fill" style="width:' + w + '%;background:' + color + '"></div></div>' +
+      '<div class="bval">' + v + '</div></div>';
+  }).join('');
+}
+
+function splitBlocos(str){
+  if (!str) return [];
+  return str.split('|').map(s => s.trim()).filter(Boolean);
+}
+
+function renderBlocosChart(elId, data){
+  const counts = {};
+  data.forEach(d => {
+    splitBlocos(d.blocos).forEach(b => { counts[b] = (counts[b]||0) + 1; });
+  });
+  const entries = Object.entries(counts).sort((a,b)=>b[1]-a[1]).slice(0, 8);
+  const el = document.getElementById(elId);
+  if (!entries.length){ el.innerHTML = '<div class="empty-state" style="padding:1rem 0">Nenhum bloco de foco associado nos filtros atuais.</div>'; return; }
+  const max = entries[0][1];
+  el.innerHTML = entries.map(([k,v]) => {
+    const w = (v/max*100).toFixed(1);
+    return '<div class="bar-row"><div class="blabel" title="' + k.replace(/"/g,'&quot;') + '">' + k + '</div>' +
+      '<div class="bar-track"><div class="bar-fill" style="width:' + w + '%;background:#1b6ca8"></div></div>' +
+      '<div class="bval">' + v + '</div></div>';
+  }).join('');
+}
+
+/* ---------------- PORTFOLIO SANKEY ---------------- */
+function buildFlows(data, deField, paraField){
+  const m = {};
+  data.forEach(d => {
+    const k = d[deField] + '|||' + d[paraField];
+    if (!m[k]) m[k] = { de: d[deField], para: d[paraField], items: [] };
+    m[k].items.push(d);
+  });
+  return Object.values(m);
+}
+
+function renderLegend(){
+  document.getElementById('legend').innerHTML =
+    ALL_PORTS.map(k =>
+      '<div class="legend-item"><div class="legend-dot" style="background:' + PORT_COLORS[k] + '"></div><span>' + (PORT_ABBR[k]||k) + ' — <em style="font-style:normal;color:#aaa">' + k + '</em></span></div>'
+    ).join('');
+}
+
+function renderSankey(data){
+  const svg = document.getElementById('sankey');
+  const W = 900, PAD = 16, COL_W = 156;
+  const allDE   = [...new Set(data.map(d => d.de_port))].sort();
+  const allPARA = [...new Set(data.map(d => d.para_port))].sort();
+  const total   = data.length || 1;
+  const NODE_H  = 38;
+  const ROW_GAP = 9;
+  const AVAIL_H = Math.max(300, Math.max(allDE.length, allPARA.length, 1) * (NODE_H + ROW_GAP));
+  const H = AVAIL_H + PAD * 2 + 20;
+
+  svg.setAttribute('viewBox', '0 0 ' + W + ' ' + H);
+  svg.style.height = H + 'px';
+
+  if (!data.length){
+    svg.innerHTML = '<text x="' + (W/2) + '" y="' + (H/2) + '" text-anchor="middle" font-size="12" fill="#8c9eb4" font-family="-apple-system,Arial,sans-serif">Nenhuma solução para os filtros atuais</text>';
+    return;
+  }
+
+  const PX = (AVAIL_H * 0.6) / total;
+  const X_DE_L  = PAD;
+  const X_DE_R  = PAD + COL_W;
+  const X_PA_L  = W - PAD - COL_W;
+  const X_PA_R  = W - PAD;
+  const MX      = (X_DE_R + X_PA_L) / 2;
+
+  const deY = {}, paY = {};
+  allDE.forEach((p,i)   => { deY[p]   = PAD + 18 + i * (NODE_H + ROW_GAP); });
+  allPARA.forEach((p,i) => { paY[p]   = PAD + 18 + i * (NODE_H + ROW_GAP); });
+
+  const deOff = {}, paOff = {};
+  allDE.forEach(p   => deOff[p] = 0);
+  allPARA.forEach(p => paOff[p] = 0);
+
+  const flows = buildFlows(data, 'de_port', 'para_port');
+  let paths = '', nodes = '';
+
+  flows.forEach(f => {
+    const cnt = f.items.length;
+    const fh  = Math.max(3, cnt * PX);
+    const dy  = deY[f.de]   + NODE_H/2 + deOff[f.de]   - fh/2;
+    const py  = paY[f.para] + NODE_H/2 + paOff[f.para] - fh/2;
+    deOff[f.de]   += fh + 2;
+    paOff[f.para] += fh + 2;
+
+    const isSel = state.selectedFlow && state.selectedFlow.de === f.de && state.selectedFlow.para === f.para;
+    const col   = f.de === f.para ? '#aaaaaa' : PORT_COLORS[f.de];
+    const op    = state.selectedFlow ? (isSel ? 0.8 : 0.12) : 0.42;
+    const sw    = Math.max(3, fh);
+    const d     = 'M ' + X_DE_R + ' ' + (dy+fh/2) + ' C ' + MX + ' ' + (dy+fh/2) + ' ' + MX + ' ' + (py+fh/2) + ' ' + X_PA_L + ' ' + (py+fh/2);
+
+    paths += '<path d="' + d + '" fill="none" stroke="' + col + '" stroke-width="' + sw + '" stroke-opacity="' + op + '" class="fp" data-de="' + f.de + '" data-para="' + f.para + '" data-cnt="' + cnt + '" style="cursor:pointer"/>';
+  });
+
+  allDE.forEach(p => {
+    const y = deY[p]; const c = PORT_COLORS[p] || '#8c9eb4';
+    const cnt = data.filter(d => d.de_port === p).length;
+    nodes += '<rect x="' + X_DE_L + '" y="' + y + '" width="' + COL_W + '" height="' + NODE_H + '" rx="5" fill="' + c + '" fill-opacity="0.13" stroke="' + c + '" stroke-width="1.5"/>';
+    nodes += '<text x="' + (X_DE_L+COL_W/2) + '" y="' + (y+NODE_H/2-5) + '" text-anchor="middle" font-size="10.5" font-weight="600" fill="' + c + '" font-family="-apple-system,Arial,sans-serif">' + (PORT_ABBR[p]||p) + '</text>';
+    nodes += '<text x="' + (X_DE_L+COL_W/2) + '" y="' + (y+NODE_H/2+9) + '" text-anchor="middle" font-size="9" fill="' + c + '" opacity="0.7" font-family="-apple-system,Arial,sans-serif">' + cnt + ' sol.</text>';
+  });
+  allPARA.forEach(p => {
+    const y = paY[p]; const c = PORT_COLORS[p] || '#8c9eb4';
+    const cnt = data.filter(d => d.para_port === p).length;
+    nodes += '<rect x="' + X_PA_L + '" y="' + y + '" width="' + COL_W + '" height="' + NODE_H + '" rx="5" fill="' + c + '" fill-opacity="0.13" stroke="' + c + '" stroke-width="1.5"/>';
+    nodes += '<text x="' + (X_PA_L+COL_W/2) + '" y="' + (y+NODE_H/2-5) + '" text-anchor="middle" font-size="10.5" font-weight="600" fill="' + c + '" font-family="-apple-system,Arial,sans-serif">' + (PORT_ABBR[p]||p) + '</text>';
+    nodes += '<text x="' + (X_PA_L+COL_W/2) + '" y="' + (y+NODE_H/2+9) + '" text-anchor="middle" font-size="9" fill="' + c + '" opacity="0.7" font-family="-apple-system,Arial,sans-serif">' + cnt + ' sol.</text>';
+  });
+
+  const labels =
+    '<text x="' + (X_DE_L+COL_W/2) + '" y="' + (PAD+10) + '" text-anchor="middle" font-size="10" fill="#8c9eb4" font-family="-apple-system,Arial,sans-serif" font-weight="600">DE (portfólio atual)</text>' +
+    '<text x="' + (X_PA_L+COL_W/2) + '" y="' + (PAD+10) + '" text-anchor="middle" font-size="10" fill="#8c9eb4" font-family="-apple-system,Arial,sans-serif" font-weight="600">PARA (sugerido SBERT)</text>';
+
+  svg.innerHTML = labels + paths + nodes;
+
+  const tip = document.getElementById('tip');
+  svg.querySelectorAll('.fp').forEach(path => {
+    path.addEventListener('mouseenter', e => {
+      tip.style.display = 'block';
+      const de = path.dataset.de, para = path.dataset.para, cnt = path.dataset.cnt;
+      tip.innerHTML = '<strong>' + (PORT_ABBR[de]||de) + ' → ' + (PORT_ABBR[para]||para) + '</strong>' + cnt + ' solução' + (cnt>1?'ões':'') + '<br><span style="color:#8c9eb4;font-size:10px">Clique para ver detalhes</span>';
+      moveTip(e);
+    });
+    path.addEventListener('mousemove', moveTip);
+    path.addEventListener('mouseleave', () => tip.style.display = 'none');
+    path.addEventListener('click', () => {
+      const de = path.dataset.de, para = path.dataset.para;
+      state.selectedFlow = (state.selectedFlow && state.selectedFlow.de===de && state.selectedFlow.para===para) ? null : {de, para};
+      renderAll();
+    });
+  });
+}
+
+function moveTip(e){
+  const t = document.getElementById('tip');
+  t.style.left = (e.clientX + 14) + 'px';
+  t.style.top  = (e.clientY - 10) + 'px';
+}
+
+function solCardHtml(s){
+  const tb = TIPO_BADGE[s.tipo] || 'badge-warn';
+  return '<div class="sol-card" data-id="' + s.id + '">' +
+    '<div class="sol-id">' + s.id + ' · ' + (s.de_di||'—') + ' → ' + s.para_di + '</div>' +
+    '<div class="sol-text">' + s.texto + '</div>' +
+    '<div class="sol-meta">' +
+      '<span class="badge ' + tb + '">' + s.tipo + '</span>' +
+      '<span class="badge badge-info">sim: ' + (s.sim*100).toFixed(1) + '%</span>' +
+    '</div></div>';
+}
+
+function attachCardHandlers(container){
+  container.querySelectorAll('.sol-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const sol = DATA.find(d => d.id === card.dataset.id);
+      if (sol) openSolutionFromAnywhere(sol);
+    });
+  });
+}
+
+function renderPortDetail(data){
+  const el = document.getElementById('portDetail');
+  if (!state.selectedFlow){
+    el.innerHTML = '<div class="empty-state"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M9 15l3-3m0 0l3-3M12 12l-3-3m3 3l3 3"/></svg>Clique em uma faixa do diagrama para ver as soluções correspondentes</div>';
+    return;
+  }
+  const items = data.filter(d => d.de_port===state.selectedFlow.de && d.para_port===state.selectedFlow.para);
+  if (!items.length){ el.innerHTML = '<div class="empty-state">Nenhuma solução neste fluxo com os filtros atuais.</div>'; return; }
+  const dc = PORT_COLORS[state.selectedFlow.de] || '#8c9eb4', pc = PORT_COLORS[state.selectedFlow.para] || '#8c9eb4';
+  el.innerHTML =
+    '<h4><span style="color:' + dc + ';font-weight:600">' + (PORT_ABBR[state.selectedFlow.de]||state.selectedFlow.de) + '</span>' +
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8c9eb4" stroke-width="2" style="vertical-align:middle"><path d="M5 12h14M13 6l6 6-6 6"/></svg>' +
+    '<span style="color:' + pc + ';font-weight:600">' + (PORT_ABBR[state.selectedFlow.para]||state.selectedFlow.para) + '</span>' +
+    '&nbsp;·&nbsp; ' + items.length + ' solução' + (items.length>1?'ões':'') + '</h4>' +
+    '<div class="solutions-grid">' + items.map(solCardHtml).join('') + '</div>';
+  attachCardHandlers(el);
+}
+
+/* ---------------- DI VIEW ---------------- */
+function buildDIGroups(data){
+  const m = {};
+  data.forEach(d => {
+    const key = d.de_di || 'Sem DI corporativo';
+    if (!m[key]) m[key] = { di: key, desafio: d.de_desafio || 'Solução sem Desafio de Inovação vinculado na base corporativa até esta análise.', port: d.de_port, items: [] };
+    m[key].items.push(d);
+  });
+  return Object.values(m).sort((a,b) => b.items.length - a.items.length);
+}
+
+function renderDIGrid(data){
+  const groups = buildDIGroups(data);
+  const grid = document.getElementById('diGrid');
+  if (!groups.length){ grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1">Nenhum DI para os filtros atuais.</div>'; return; }
+  grid.innerHTML = groups.map(g => {
+    const color = PORT_COLORS[g.port] || '#8c9eb4';
+    const targets = {};
+    g.items.forEach(it => {
+      const key = it.para_di;
+      if (!targets[key]) targets[key] = { di: it.para_di, port: it.para_port, count: 0, simSum: 0 };
+      targets[key].count++;
+      targets[key].simSum += it.sim;
+    });
+    const chips = Object.values(targets).sort((a,b)=>b.count-a.count).map(t => {
+      const sel = state.selectedDI && state.selectedDI.de === g.di && state.selectedDI.para === t.di;
+      const avgSim = (t.simSum/t.count*100).toFixed(0);
+      return '<span class="di-target-chip' + (sel?' sel':'') + '" data-de="' + g.di + '" data-para="' + t.di + '" style="' + (sel?'':'border-color:' + (PORT_COLORS[t.port]||'#8c9eb4') + '66') + '">' +
+        t.di + (t.di===g.di ? ' (mesmo)' : '') + ' · ' + t.count + 'x · ~' + avgSim + '%</span>';
+    }).join('');
+    return '<div class="di-card" style="border-left-color:' + color + '">' +
+      '<div class="di-head"><span class="di-code">' + g.di + '</span><span class="di-count">' + g.items.length + ' solução' + (g.items.length>1?'ões':'') + '</span></div>' +
+      '<div class="di-port" style="color:' + color + '">' + (PORT_ABBR[g.port]||g.port) + '</div>' +
+      '<div class="di-desafio" title="' + g.desafio.replace(/"/g,'&quot;') + '">' + g.desafio + '</div>' +
+      '<div class="di-targets">' + chips + '</div>' +
+      '</div>';
+  }).join('');
+
+  grid.querySelectorAll('.di-target-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const de = chip.dataset.de, para = chip.dataset.para;
+      state.selectedDI = (state.selectedDI && state.selectedDI.de===de && state.selectedDI.para===para) ? null : {de, para};
+      renderAll();
+    });
+  });
+}
+
+function renderDIDetail(data){
+  const el = document.getElementById('diDetail');
+  if (!state.selectedDI){
+    el.innerHTML = '<div class="empty-state"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M9 15l3-3m0 0l3-3M12 12l-3-3m3 3l3 3"/></svg>Clique em um chip de DI sugerido para ver as soluções correspondentes</div>';
+    return;
+  }
+  const items = data.filter(d => (d.de_di || 'Sem DI corporativo')===state.selectedDI.de && d.para_di===state.selectedDI.para);
+  if (!items.length){ el.innerHTML = '<div class="empty-state">Nenhuma solução neste par com os filtros atuais.</div>'; return; }
+  const first = items[0];
+  el.innerHTML =
+    '<h4><span class="badge badge-info" style="font-family:var(--mono)">' + state.selectedDI.de + '</span>' +
+    '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#8c9eb4" stroke-width="2" style="vertical-align:middle"><path d="M5 12h14M13 6l6 6-6 6"/></svg>' +
+    '<span class="badge badge-info" style="font-family:var(--mono)">' + state.selectedDI.para + '</span>' +
+    '&nbsp;·&nbsp; ' + items.length + ' solução' + (items.length>1?'ões':'') + '</h4>' +
+    '<p style="font-size:11px;color:var(--text-muted);line-height:1.6;margin-bottom:10px"><strong>Desafio sugerido:</strong> ' + first.para_desafio + '</p>' +
+    '<div class="solutions-grid">' + items.map(solCardHtml).join('') + '</div>';
+  attachCardHandlers(el);
+}
+
+/* ---------------- TABLE ---------------- */
+const TABLE_COLS = [
+  { key: 'id', label: 'ID' },
+  { key: 'texto', label: 'Solução', sortable: false },
+  { key: 'de_port', label: 'Portfólio (DE → PARA)', sortable: false },
+  { key: 'de_di', label: 'DI (DE → PARA)', sortable: false },
+  { key: 'sim', label: 'Sim. SBERT' },
+  { key: 'tipo', label: 'Tipo de movimento', sortable: false }
+];
+
+function renderTableHead(){
+  const thead = document.querySelector('#solTable thead');
+  thead.innerHTML = '<tr>' + TABLE_COLS.map(c => {
+    const sortable = c.sortable !== false;
+    let arrow = '';
+    if (sortable && state.sortCol === c.key) arrow = ' <span class="arrow">' + (state.sortDir === 'asc' ? '▲' : '▼') + '</span>';
+    return '<th data-key="' + c.key + '" data-sortable="' + sortable + '">' + c.label + arrow + '</th>';
+  }).join('') + '</tr>';
+  thead.querySelectorAll('th').forEach(th => {
+    if (th.dataset.sortable !== 'true') return;
+    th.addEventListener('click', () => {
+      const key = th.dataset.key;
+      if (state.sortCol === key) state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+      else { state.sortCol = key; state.sortDir = 'desc'; }
+      renderTable(getFiltered());
+    });
+  });
+}
+
+function renderTable(data){
+  renderTableHead();
+  let sorted = data.slice();
+  sorted.sort((a,b) => {
+    let av = a[state.sortCol], bv = b[state.sortCol];
+    if (typeof av === 'string') { av = av.toLowerCase(); bv = bv.toLowerCase(); }
+    if (av < bv) return state.sortDir === 'asc' ? -1 : 1;
+    if (av > bv) return state.sortDir === 'asc' ? 1 : -1;
+    return 0;
+  });
+
+  const tbody = document.querySelector('#solTable tbody');
+  if (!sorted.length){
+    tbody.innerHTML = '<tr><td colspan="' + TABLE_COLS.length + '"><div class="empty-state">Nenhuma solução para os filtros atuais.</div></td></tr>';
+    return;
+  }
+
+  let html = '';
+  sorted.forEach(s => {
+    const dc = PORT_COLORS[s.de_port] || '#8c9eb4', pc = PORT_COLORS[s.para_port] || '#8c9eb4';
+    html += '<tr class="row" data-id="' + s.id + '">' +
+      '<td class="id-cell">' + s.id + '</td>' +
+      '<td class="txt-cell">' + s.texto + '</td>' +
+      '<td class="port-flow"><span style="color:' + dc + ';font-weight:600">' + (PORT_ABBR[s.de_port]||s.de_port) + '</span><span class="arrow-sep">→</span><span style="color:' + pc + ';font-weight:600">' + (PORT_ABBR[s.para_port]||s.para_port) + '</span></td>' +
+      '<td class="di-flow"><span style="font-family:var(--mono)">' + (s.de_di||'—') + '</span><span class="arrow-sep">→</span><span style="font-family:var(--mono)">' + s.para_di + '</span></td>' +
+      '<td><strong>' + (s.sim*100).toFixed(1) + '%</strong></td>' +
+      '<td><span class="badge ' + (TIPO_BADGE[s.tipo]||'badge-warn') + '">' + s.tipo + '</span></td>' +
+      '</tr>';
+    if (state.expandedRow === s.id){
+      html += '<tr class="expand-row"><td colspan="' + TABLE_COLS.length + '">' + expandHtml(s) + '</td></tr>';
+    }
+  });
+  tbody.innerHTML = html;
+
+  tbody.querySelectorAll('tr.row').forEach(tr => {
+    tr.addEventListener('click', () => {
+      state.expandedRow = state.expandedRow === tr.dataset.id ? null : tr.dataset.id;
+      renderTable(getFiltered());
+    });
+  });
+}
+
+function expandHtml(s){
+  const blocos = splitBlocos(s.blocos);
+  const blocosHtml = blocos.length
+    ? blocos.map(b => '<span class="badge badge-info" style="margin:2px 4px 2px 0">' + b + '</span>').join('')
+    : '<span style="color:var(--text-muted)">Nenhum bloco de foco relacionado registrado.</span>';
+  return '<div class="expand-grid">' +
+    '<div class="expand-col">' +
+      '<h5>Situação atual (DE)</h5>' +
+      '<div class="meta-line"><b>DI:</b> ' + (s.de_di||'Sem DI corporativo') + ' · ' + (PORT_ABBR[s.de_port]||s.de_port) + '</div>' +
+      (s.de_desafio ? '<p>' + s.de_desafio + '</p>' : '<p style="color:var(--text-muted)">Solução sem Desafio de Inovação vinculado na base corporativa até esta análise.</p>') +
+      (s.de_oe ? '<div class="meta-line"><b>OE:</b> ' + s.de_oe + '</div>' : '') +
+      (s.de_meta ? '<div class="meta-line"><b>Meta:</b> ' + s.de_meta + '</div>' : '') +
+      (s.de_ods ? '<div class="meta-line"><b>ODS:</b> ' + s.de_ods + '</div>' : '') +
+    '</div>' +
+    '<div class="expand-col">' +
+      '<h5>Sugestão SBERT (PARA)</h5>' +
+      '<div class="meta-line"><b>DI:</b> ' + s.para_di + ' · ' + (PORT_ABBR[s.para_port]||s.para_port) + '</div>' +
+      '<p>' + s.para_desafio + '</p>' +
+      '<div class="meta-line"><b>OE:</b> ' + s.para_oe + '</div>' +
+      '<div class="meta-line"><b>Meta:</b> ' + s.para_meta + '</div>' +
+      '<div class="meta-line"><b>ODS:</b> ' + s.para_ods + '</div>' +
+    '</div>' +
+    '<div class="expand-col" style="grid-column:1/-1">' +
+      '<h5>Compromisso vinculado</h5>' +
+      '<div class="meta-line"><b>ID:</b> ' + (s.comp_ids || '— sem compromisso vinculado —') + '</div>' +
+      (s.comp_texto ? '<p>' + s.comp_texto + '</p>' : '') +
+    '</div>' +
+    '<div class="expand-footer" style="grid-column:1/-1;flex-direction:column;align-items:flex-start;gap:6px">' +
+      '<span><b>Similaridade SBERT:</b> ' + (s.sim*100).toFixed(1) + '%</span>' +
+      '<div><b>Blocos de foco relacionados:</b><br>' + blocosHtml + '</div>' +
+    '</div></div>';
+}
+
+function openSolutionFromAnywhere(sol){
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector('.tab-btn[data-tab="table"]').classList.add('active');
+  document.getElementById('panel-table').classList.add('active');
+  document.getElementById('filterBarWrap').style.display = 'block';
+  state.tab = 'table';
+  state.expandedRow = sol.id;
+  renderAll();
+  setTimeout(() => {
+    const row = document.querySelector('tr.row[data-id="' + sol.id + '"]');
+    if (row) row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, 30);
+}
+
+/* ---------------- INDICATORS ---------------- */
+function renderIndicators(data){
+  renderBarBlock('indTipo', countBy(data, 'tipo'), TIPO_COLOR, null, TIPO_ORDER);
+
+  // avg similarity by tipo
+  const byTipo = {};
+  data.forEach(d => {
+    if (!byTipo[d.tipo]) byTipo[d.tipo] = { sum: 0, n: 0 };
+    byTipo[d.tipo].sum += d.sim; byTipo[d.tipo].n++;
+  });
+  const el = document.getElementById('indSimClass');
+  const entries = TIPO_ORDER.filter(k => byTipo[k]).map(k => [k, byTipo[k]]);
+  if (!entries.length){ el.innerHTML = '<div class="empty-state" style="padding:1rem 0">Sem dados.</div>'; }
+  else {
+    el.innerHTML = entries.map(([k,v]) => {
+      const avg = v.sum / v.n;
+      const color = TIPO_COLOR[k] || '#8c9eb4';
+      return '<div class="bar-row"><div class="blabel">' + k + '</div>' +
+        '<div class="bar-track"><div class="bar-fill" style="width:' + (avg*100).toFixed(1) + '%;background:' + color + '"></div></div>' +
+        '<div class="bval">' + (avg*100).toFixed(0) + '%</div></div>';
+    }).join('');
+  }
+
+  renderBlocosChart('indBlocos', data);
+  renderSimHistogram('indSimHist', data);
+  renderBarBlock('indOdsDe', countBy(data.filter(d=>d.de_ods), 'de_ods'), null, null);
+  renderBarBlock('indOdsPara', countBy(data, 'para_ods'), null, null);
+
+  renderMatrix(data);
+}
+
+function renderSimHistogram(elId, data){
+  const bins = [
+    {label: '< 45%', min: 0, max: 0.45},
+    {label: '45–55%', min: 0.45, max: 0.55},
+    {label: '55–65%', min: 0.55, max: 0.65},
+    {label: '65–75%', min: 0.65, max: 0.75},
+    {label: '≥ 75%', min: 0.75, max: 1.01}
+  ];
+  const counts = bins.map(b => data.filter(d => d.sim >= b.min && d.sim < b.max).length);
+  const max = Math.max(...counts, 1);
+  const el = document.getElementById(elId);
+  el.innerHTML = bins.map((b,i) => {
+    const w = (counts[i]/max*100).toFixed(1);
+    return '<div class="bar-row"><div class="blabel">' + b.label + '</div>' +
+      '<div class="bar-track"><div class="bar-fill" style="width:' + w + '%;background:#1b6ca8"></div></div>' +
+      '<div class="bval">' + counts[i] + '</div></div>';
+  }).join('');
+}
+
+function renderMatrix(data){
+  const rows = ALL_PORTS.slice();
+  const cols = DEST_PORTS.slice();
+  const counts = {};
+  let max = 0;
+  data.forEach(d => {
+    const k = d.de_port + '|||' + d.para_port;
+    counts[k] = (counts[k]||0) + 1;
+    if (counts[k] > max) max = counts[k];
+  });
+  const table = document.getElementById('matrixTable');
+  let html = '<tr><th></th>' + cols.map(c => '<th class="colhead" style="color:' + PORT_COLORS[c] + '">' + (PORT_ABBR[c]||c) + '</th>').join('') + '</tr>';
+  rows.forEach(r => {
+    html += '<tr><th class="rowhead" style="color:' + (PORT_COLORS[r]||'#8c9eb4') + '">' + (PORT_ABBR[r]||r) + '</th>';
+    cols.forEach(c => {
+      const v = counts[r + '|||' + c] || 0;
+      const isDiag = r === c;
+      const intensity = max ? (v / max) : 0;
+      const bg = v === 0 ? 'transparent' : 'rgba(27,108,168,' + (0.08 + intensity*0.55).toFixed(2) + ')';
+      html += '<td class="cell' + (isDiag?' diag':'') + '" style="background:' + bg + '">' + (v || '·') + '</td>';
+    });
+    html += '</tr>';
+  });
+  table.innerHTML = html;
+}
+
+/* ---------------- MASTER RENDER ---------------- */
+function renderAll(){
+  const data = getFiltered();
+  updateResultCount(data);
+  if (state.tab === 'overview') renderOverview(data);
+  if (state.tab === 'portfolio') { renderSankey(data); renderPortDetail(data); }
+  if (state.tab === 'di') { renderDIGrid(data); renderDIDetail(data); }
+  if (state.tab === 'table') renderTable(data);
+  if (state.tab === 'indicators') renderIndicators(data);
+}
+
+initTabs();
+initFilters();
+renderLegend();
+renderOverview(DATA);
+renderAll();
+
+</script>
+</body>
+</html>
